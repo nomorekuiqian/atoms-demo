@@ -4,6 +4,8 @@
 
 **[在线体验](https://53bg3mbj.insforge.site) · [GitHub](https://github.com/nomorekuiqian/atoms-demo) · [增强版验收](docs/RELEASE-ENHANCED-2026-10-10.md) · [v1.0 基线](docs/RELEASE-2026-10-10.md)**
 
+交付评阅请先看 **[简要说明：实现思路、完成范围与后续优先级](docs/DELIVERY-NOTES.md)**。当前架构的已知问题和待补验项以该说明为入口；下方分阶段验收记录保留其历史范围。
+
 登录页点击 **Try the demo account**，无需输入密码。共享体验账号中的修改对所有体验者可见；需要独立项目可自行注册。
 
 ![工作台：对话、生成文件与实时预览](docs/screenshots/workspace-real.png)
@@ -137,7 +139,7 @@ T1 首页、T2 注册、T3 连续三次真实生成、T4 Code、T5 迭代、T6 �
 - **iframe srcdoc 而不是 Sandpack。** 仅面向小型静态应用，无需安装依赖和远程构建。生成代码始终在 `sandbox="allow-scripts allow-forms allow-modals"` 中运行，禁止 `allow-same-origin`。
 - **可信外壳 + 沙箱 iframe。** 公开页与主站同域，但生成代码在 opaque origin 的 iframe 内，不能读取主站 DOM/cookie。`localStorage` 由父页按项目/公开链接隔离桥接；不是跨设备云同步。
 - **完整快照而不是 diff 存储。** 读取/恢复简单，历史不改写；代价是存储重复。发布指针独立，后续修改不会自动改动已发布应用。
-- **XML 文件标签而不是大 JSON 字符串。** 能逐文件流式解析；路径经过校验。任一文件截断或非法时失败，不将部分输出标为成功版本。
+- **结构化工具写入候选文件。** 当前使用 SDK 工具参数校验和路径检查；完整文件收到后才推送草稿，不将部分输出标为成功版本。XML 文件标签解析属于迁移前实现，真正的代码增量展示仍待完善。
 - **Route Handler 而不是 Edge Function。** M0 线上连续 150 秒 SSE 实测逐条到达；编排器保持框架无关，便于以后迁移。该次测试是历史证据，不是无限时长承诺。
 - **Mock 优先，真实收尾。** 避免 UI 开发反复花费额度；真实验收中发现截断输出和删除报错按钮的问题，分别收紧完整性判定与修复提示。
 - **Haiku 优先。** 生产与本地配置一致，保留模型切换环境变量。网关未返回剩余额度，不能承诺固定的可用生成次数。
