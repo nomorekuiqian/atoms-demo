@@ -48,7 +48,7 @@ type State = WorkspaceInit & {
   /** Files Alex is writing in the current run; merged into `files` when a version is created. */
   draft: Files;
   writing: string | null;
-  tab: "preview" | "code" | "versions";
+  tab: "preview" | "code" | "versions" | "acceptance";
   pane: "chat" | "app";
   activeFile: string | null;
   device: "desktop" | "phone";

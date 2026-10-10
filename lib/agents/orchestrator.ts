@@ -1,3 +1,4 @@
+import {parseRequirements,readContract,extendContract,changeCriterion} from "@/lib/acceptance/contract";
 /**
  * Mike → Emma → Bob → Alex pipeline. Framework-free: depends only on the LLM interface,
  * so it can move to an InsForge Edge Function unchanged.
@@ -43,8 +44,9 @@ export async function* runPipeline(
   const { llm, models, signal } = deps;
   const hasApp = Object.keys(input.files).length > 0;
   const agents: AgentOutput[] = [];
+  let acceptance=readContract(input.acceptance);
   const result = (partial: Partial<PipelineResult> & Pick<PipelineResult, "route">): PipelineResult => ({
-    agents,
+    agents, acceptance,
     written: {},
     summary: "",
     ok: false,
@@ -105,6 +107,7 @@ export async function* runPipeline(
     // Emma: requirements.
     let requirements: string | undefined;
     let plan: string | undefined;
+    if (route === "alex_only" && input.mode !== "fix") acceptance=extendContract(acceptance,{items:[changeCriterion(input.prompt,input.requestId ?? "request")]});
     if (route === "full") {
       current = "emma";
       yield { type: "agent_start", agent: "emma", activity: "Writing requirements" };
@@ -113,17 +116,20 @@ export async function* runPipeline(
         agent: "emma",
         model: models.fast,
         signal,
-        maxTokens: 500,
+        maxTokens: 2500,
         messages: [
           { role: "system", content: EMMA_SYSTEM },
           { role: "user", content: emmaUser(input.prompt, brief) },
         ],
       })) {
         requirements += delta;
-        yield { type: "text_delta", agent: "emma", delta };
+        // Structured model output is rendered only after validation.
       }
+      acceptance=extendContract(acceptance,parseRequirements(requirements));
+      const requirementsText=acceptance.items.length ? acceptance.items.map(i=>`- ${i.requirement} — ${i.expected} (${i.mode === "automatic" ? "ready for browser checks" : "manual check"})`).join("\n") : acceptance.notice!;
+      yield {type:"text_delta",agent:"emma",delta:requirementsText};
       yield { type: "agent_end", agent: "emma", status: "done" };
-      agents.push({ agent: "emma", text: requirements.trim(), status: "done", files: [] });
+      agents.push({ agent: "emma", text: requirementsText, status: "done", files: [] });
 
       // Bob: file plan.
       current = "bob";
@@ -191,7 +197,7 @@ export async function* runPipeline(
           content: alexUser({
             prompt: input.prompt,
             brief,
-            requirements,
+            requirements: `${requirements ?? ""}\nAcceptance contract (implement exact selectors; these checks have NOT run):\n${JSON.stringify(acceptance)}`,
             plan,
             files: input.files,
             history: input.history,

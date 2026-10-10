@@ -11,3 +11,12 @@
 - 老消息同时间戳的精确历史顺序已不可恢复；迁移按角色顺序和 ID 做确定性回填，新消息使用数据库序号。
 - 资源支持：HTML/CSS/JS/SVG 单页，本地 SVG、CSS import/url、引号/无引号及归一化路径。多页 HTML 导航拒绝；JavaScript 动态 import/fetch 仍明确未检查。
 - 页面切换身份隔离有单测；生产浏览器回归待部署后执行。
+
+M15 生产：c66ca01，部署 272c34aa-77b1-4d96-9bb8-db1e19f99db4，READY，https://53bg3mbj.insforge.site 。
+
+## M16 验收契约
+
+- 108 单测、lint、类型及生产构建通过。
+- 隔离数据库验证：finish_generation_v3 重放不改合同；浏览器不能直接伪造合同/观察；他人 RPC 读不到证据；Restore 复制契约但不复制通过状态。
+- 小改动保持 Mike→Alex，继承旧项并新增人工确认项；大改动保留旧契约再补 Emma 新项。固定上限 24 项，超限明确要求人工复核，不静默宣称覆盖。
+- 新 synthetic acceptance counter fixture 仅供回归，不是录制模型结果。

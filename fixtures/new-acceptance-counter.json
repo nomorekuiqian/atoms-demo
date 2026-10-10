@@ -1,0 +1,11 @@
+{
+  "name": "new-acceptance-counter",
+  "match": [
+    "acceptance counter",
+    "\u9a8c\u6536\u8ba1\u6570\u5668"
+  ],
+  "mike": "route: full\ntitle: Acceptance Counter\n---\nBuild a counter with persistent state.",
+  "emma": "{\"items\": [{\"id\": \"counter-add\", \"requirement\": \"Add increases the counter\", \"procedure\": \"Click Add once\", \"expected\": \"Counter reads 1\", \"mode\": \"automatic\", \"steps\": [{\"kind\": \"click\", \"selector\": \"#add\"}, {\"kind\": \"expectText\", \"selector\": \"#count\", \"text\": \"1\", \"match\": \"equals\"}]}, {\"id\": \"counter-reset\", \"requirement\": \"Reset clears the counter\", \"procedure\": \"Add then Reset\", \"expected\": \"Counter reads 0\", \"mode\": \"automatic\", \"steps\": [{\"kind\": \"click\", \"selector\": \"#add\"}, {\"kind\": \"click\", \"selector\": \"#reset\"}, {\"kind\": \"expectText\", \"selector\": \"#count\", \"text\": \"0\", \"match\": \"equals\"}]}, {\"id\": \"counter-storage\", \"requirement\": \"Counter survives refresh\", \"procedure\": \"Add then refresh\", \"expected\": \"Counter remains 1\", \"mode\": \"automatic\", \"steps\": [{\"kind\": \"click\", \"selector\": \"#add\"}, {\"kind\": \"reload\"}, {\"kind\": \"expectText\", \"selector\": \"#count\", \"text\": \"1\", \"match\": \"equals\"}]}]}",
+  "bob": "{\"files\":[{\"path\":\"index.html\",\"purpose\":\"Counter controls\"},{\"path\":\"app.js\",\"purpose\":\"Counter behavior\"}]}",
+  "alex": "Building a counter.\n<file path=\"index.html\"><!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width\"><title>Counter</title></head><body><main><h1>Counter</h1><output id=\"count\">0</output><button id=\"add\">Add</button><button id=\"reset\">Reset</button></main><script src=\"app.js\"></script></body></html></file>\n<file path=\"app.js\">let n=Number(localStorage.getItem(\"count\")||0);const count=document.querySelector(\"#count\");function render(){count.textContent=String(n);localStorage.setItem(\"count\",String(n));}document.querySelector(\"#add\").onclick=()=>{n++;render();};document.querySelector(\"#reset\").onclick=()=>{n=0;render();};render();</file><summary>Persistent counter</summary>"
+}

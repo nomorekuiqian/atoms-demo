@@ -16,6 +16,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { parsePreviewMessage } from "@/lib/preview/protocol";
 import { VersionChecks } from "./version-checks";
 import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
+import { AcceptancePanel } from "./acceptance-panel";
 import { HistoryMore } from "./history-more";
 import { RunScope } from "@/lib/store/runScope";
 import { readRun } from "@/lib/sse/readRun";
@@ -469,6 +470,7 @@ function AppPanel({
           <TabsList className="self-start">
             <TabsTrigger value="preview">Preview</TabsTrigger>
             <TabsTrigger value="code">Code</TabsTrigger>
+            <TabsTrigger value="acceptance">Acceptance</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
           </TabsList>
           <div className={cn("ml-auto flex h-8 items-center gap-0.5",tab!=="preview" && "invisible")} aria-hidden={tab!=="preview"} inert={tab!=="preview"}>
@@ -495,7 +497,7 @@ function AppPanel({
               </span>
             </ToolButton>
           </div>
-        {tab!=="preview" && <div className="absolute inset-x-3 bottom-2 flex h-8 items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm text-ink-2">{tab==="code"?`${Object.keys(codeFiles).length} source files · Read-only`:`${versions.length} saved versions`}</p>{tab==="code" && <Button size="sm" variant="secondary" disabled={!selectedPath || !currentVersionId || Boolean(viewing) || !idle || selectedAlready} title={viewing?"Return to current to reference a file":selectedPath} onClick={referenceFile}>{selectedAlready?"Added to chat":"Add file to chat"}</Button>}</div>}
+        {tab!=="preview" && <div className="absolute inset-x-3 bottom-2 flex h-8 items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm text-ink-2">{tab==="code"?`${Object.keys(codeFiles).length} source files · Read-only`:tab==="acceptance"?"Version-bound requirements and observations":`${versions.length} saved versions`}</p>{tab==="code" && <Button size="sm" variant="secondary" disabled={!selectedPath || !currentVersionId || Boolean(viewing) || !idle || selectedAlready} title={viewing?"Return to current to reference a file":selectedPath} onClick={referenceFile}>{selectedAlready?"Added to chat":"Add file to chat"}</Button>}</div>}
       </div>
       {versionLoading && <p role="status" className="shrink-0 border-b px-3 py-2 text-sm text-ink-2">Loading version… Your current preview stays available.</p>}
       {versionError && <div role="alert" className="flex shrink-0 items-center gap-2 border-b px-3 py-2 text-sm"><p className="flex-1">{versionError.message}</p><Button size="sm" variant="ghost" onClick={()=>onView(versionError.id)}>Retry version</Button></div>}
@@ -512,6 +514,7 @@ function AppPanel({
         </div>
       )}
       <div className="relative min-h-0 flex-1">
+        <TabsContent value="acceptance" className="m-0 h-full min-w-0"><AcceptancePanel onResolve={onResolve}/></TabsContent>
         <TabsContent value="preview" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden">
           <Preview />
         </TabsContent>

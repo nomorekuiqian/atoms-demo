@@ -154,7 +154,7 @@ async function generate(request: Request) {
       let result: PipelineResult | undefined;
       try {
         const gen = runPipeline(
-          { prompt: prompt!, history: turns, files: state.files, mode: body.mode, errors: body.errors, references: body.references, element:body.element },
+          { prompt: prompt!, acceptance:state.acceptance,requestId:body.requestId, history: turns, files: state.files, mode: body.mode, errors: body.errors, references: body.references, element:body.element },
           { llm, models: { main: env.OPENROUTER_CHAT_MODEL, fast: env.OPENROUTER_FAST_MODEL }, signal: controller.signal },
         );
         for (let r = await gen.next(); ; r = await gen.next()) {

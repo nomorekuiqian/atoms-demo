@@ -1,3 +1,4 @@
+import type {AcceptanceContract} from "@/lib/acceptance/contract";
 import type {ElementContext} from "@/lib/context/element";
 import type { FileReference } from "@/lib/context/references";
 import type { AgentId } from "./meta";
@@ -26,6 +27,8 @@ export type ChatTurn = { role: "user" | AgentId; content: string };
 
 export type PipelineInput = {
   prompt: string;
+  acceptance?: AcceptanceContract;
+  requestId?: string;
   history: ChatTurn[];
   files: Files;
   mode: Mode;
@@ -44,6 +47,7 @@ export type AgentOutput = {
 
 export type PipelineResult = {
   route: Route;
+  acceptance?: AcceptanceContract;
   title?: string;
   agents: AgentOutput[];
   /** Files Alex wrote this run (complete contents). Empty when nothing usable was produced. */

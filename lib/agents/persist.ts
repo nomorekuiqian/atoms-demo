@@ -1,3 +1,4 @@
+import {readContract,type AcceptanceContract} from "@/lib/acceptance/contract";
 import type {ElementContext} from "@/lib/context/element";
 import type { FileReference } from "@/lib/context/references";
 import type { Files, PipelineResult } from "./types";
@@ -13,6 +14,7 @@ export type ProjectState = {
   files: Files;
   currentVersionId: string | null;
   currentNumber: number;
+  acceptance: AcceptanceContract;
 };
 
 export async function loadProjectState(db: Db, projectId: string): Promise<ProjectState | null> {
@@ -25,13 +27,15 @@ export async function loadProjectState(db: Db, projectId: string): Promise<Proje
   if (!project) return null;
   let files: Files = {};
   let currentNumber = 0;
+  let acceptance=readContract(null);
   if (project.current_version_id) {
-    const { data: v, error: versionError } = await db.from("versions").select("files, number").eq("id", project.current_version_id).maybeSingle();
+    const { data: v, error: versionError } = await db.from("versions").select("files, number, acceptance").eq("id", project.current_version_id).maybeSingle();
     if (versionError || !v) throw new Error("Current version could not be read.");
     files = v.files as Files;
+    acceptance=readContract(v.acceptance);
     currentNumber = v?.number ?? 0;
   }
-  return { id: project.id, title: project.title, files, currentVersionId: project.current_version_id, currentNumber };
+  return { id: project.id, title: project.title, files, currentVersionId: project.current_version_id, currentNumber, acceptance };
 }
 
 /** Latest messages for context, oldest first. */
@@ -59,9 +63,10 @@ export async function persistRun(db: RpcDb, opts: {
     ...(opts.prompt ? [{ role: "user", content: opts.prompt, meta: {references:opts.references ?? [], ...(opts.element?{element:opts.element}:{})} }] : []),
     ...result.agents.map(a => ({ role: a.agent, content: a.text, meta: { status: a.status, files: a.files, route: result.route, summary: result.summary } })),
   ];
-  const { data, error } = await db.rpc("finish_generation", {
+  const { data, error } = await db.rpc("finish_generation_v3", {
     p_id: opts.requestId, p_user: opts.userId, p_lease: opts.lease,
     p_files: result.ok ? opts.merged : null, p_summary: result.summary,
+    p_acceptance: readContract(result.acceptance),
     p_title: opts.title ?? null, p_messages: messages,
     p_usage: opts.separateUsage || opts.mock || !result.usage.length ? null : {
       model: [...new Set(result.usage.map(u => u.model))].join(","),
