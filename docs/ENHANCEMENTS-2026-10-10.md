@@ -76,3 +76,13 @@ Code 的 Add file to chat 加入 `{path, versionId}`，可移除；用户消息�
 选择 [jsdiff](https://github.com/kpdecker/jsdiff) 9.0.0 而非完整编辑器：无运行依赖，构建仅为实际使用的行差异算法生成 3,478 字节延迟 chunk（gzip 1,510 字节）。150ms/4000 edit 的预算超出后显示完整前后块并标注，不把截断当精确 Diff。原始文本与换行保留，长内容在有界区域滚动。
 
 81 项单测、lint、typecheck、build 通过。本地 T17 浏览器通过首版/无变化/新增/修改/删除/空文件/长 CRLF、375px 无横向溢出、当前及发布指针不变。第一次脚本因直接更新受保护发布列被拒绝，改为只读比较既有空发布指针；长文本 fallback 文案导致过严精确匹配失败，修正断言后通过，未改产品行为迎合测试。
+
+M10 Diff 部署 `f3bf777` / `2e32fe67-d47c-49a5-90f4-ce0cc0d03d1c`，线上 T17 同组用例全部通过。
+
+## M11 — 原始源码 ZIP
+
+GET 导出必须给出确切 versionId，经所有者 RLS 和项目/版本归属双重过滤；读取失败不回退版本。选择 [fflate](https://github.com/101arrowz/fflate) 0.8.3：无运行依赖，ZIP 能力在服务端使用，浏览器不加载压缩库。原始快照逐路径校验、单文件 100KB/总文件 6 个；拒绝绝对路径、穿越和异常类型。说明文件大小写不敏感避让现有文件。附件名净化，private/no-store、zip 内容类型、nosniff。
+
+Code 导出当前显示快照，Versions 比较详情导出所选版本；按钮明确 vN、下载状态和可重试错误。说明包含本地 HTTP 启动方式、外链仍需网络、平台存储数据不随源码转移，不伪称生成代码中不存在用户自行写入的信息。
+
+83 项单测、lint、typecheck、build 通过。T18 本地 API/Chrome 通过：当前及历史逐字节解压比对、空文件/CRLF/README 冲突、危险路径/缺版本/匿名/其他所有者拒绝，解压后本地 HTTP 的计数按钮确实递增；375px Code 下载的文件名对应 v2。脚本 `scripts/check-export.mjs`，线上待部署验证。

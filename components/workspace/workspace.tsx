@@ -29,6 +29,7 @@ import { Composer } from "./composer";
 import { Markdown } from "./markdown";
 import { PublishDialog } from "./publish-dialog";
 import { VersionCard } from "./version-card";
+import { ExportButton } from "./export-button";
 import { VersionDiff } from "./version-diff";
 import { VersionList } from "./version-list";
 import { WorkingProcess } from "./working-process";
@@ -484,7 +485,7 @@ function AppPanel({
             </div>
           </div>
         )}
-        <TabsContent value="code" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden"><CodeView files={codeFiles} active={activeFile} writing={writing} onSelect={(p) => set({ activeFile: p })} visible={tab==="code"} scrollKey={`${useWorkspace.getState().projectId}:${viewing?.id ?? currentVersionId}`} /></TabsContent>
+        <TabsContent value="code" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden"><div className="flex h-full min-h-0 flex-col">{(viewing?.id ?? currentVersionId) && <div className="shrink-0 border-b px-3"><ExportButton versionId={(viewing?.id ?? currentVersionId)!} number={viewing?.number ?? versions.find(v=>v.id===currentVersionId)?.number ?? 1} /></div>}<div className="min-h-0 flex-1"><CodeView files={codeFiles} active={activeFile} writing={writing} onSelect={(p) => set({ activeFile: p })} visible={tab==="code"} scrollKey={`${useWorkspace.getState().projectId}:${viewing?.id ?? currentVersionId}`} /></div></div></TabsContent>
         <TabsContent value="versions" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden">
           {versions.length ? (
             <div className="h-full overflow-y-auto">
