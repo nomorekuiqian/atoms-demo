@@ -456,6 +456,8 @@ One grammar for state changes: 180ms with the out curve `cubic-bezier(0.16, 1, 0
 
 ## Enhanced workspace and visual assets (2026-10-10)
 
+Homepage navigation expansion (2026-10-10): Home, Projects and Discover share a 224px fixed sidebar on desktop and an accessible modal drawer below 768px. Navigation includes new project, home, owned projects, discovery, team and help anchors, and the repository. Recent projects come only from the signed-in user's scoped query; logged-out, empty and unavailable states are explicit. The homepage keeps the existing identity and composer, reduces hero artwork to 144px desktop / 120px phone height, and adds three live published examples, factual four-agent introductions and native help disclosures. Example screenshots are matched to the published version; no copied marketing claims, invented activity or unsupported product menus.
+
 Homepage illustration (user-approved addition, 2026-10-10): an original matte clay still life of a terracotta timer, ivory app canvas, sage building blocks and powder-blue arch sits above the existing headline. Color is contained within the artwork; navigation, typography and composer keep the Quiet Studio palette. The transparent WebP has reserved dimensions, empty alt text and no motion. At phone widths it occupies 280 × 160px; desktop 385 × 220px. Source and prompt live in `design-assets/home/v1/`.
 
 Version comparison stays inside the existing Versions panel: complete summary, version selector, file counts and a collapsed per-file diff. Export names the snapshot version. Selection uses the Iris highlight only inside the sandbox; its injected helper cannot inherit parent CSS variables. Selected context is a removable chip with a clear dynamic-DOM limitation.

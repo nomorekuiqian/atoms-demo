@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { SiteHeader } from "@/components/app/site-header";
+import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,14 +24,7 @@ export default async function DashboardPage() {
   const renderedAt = Date.now();
 
   return (
-    <div className="min-h-dvh">
-      <SiteHeader email={user?.email}>
-        <Button asChild variant="primary">
-          <Link href="/">
-            <Plus aria-hidden /> New project
-          </Link>
-        </Button>
-      </SiteHeader>
+    <AppShell user={user} title="My projects">
       <main className="mx-auto max-w-[880px] px-4 pb-24 pt-10 sm:px-6">
         <h1 className="font-serif text-display text-ink">Projects</h1>
         <div className="mt-8 overflow-hidden rounded-lg border bg-surface shadow-sm">
@@ -58,6 +50,6 @@ export default async function DashboardPage() {
         </div>
       </main>
       <Toaster />
-    </div>
+    </AppShell>
   );
 }

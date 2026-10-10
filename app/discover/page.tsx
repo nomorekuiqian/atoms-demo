@@ -1,7 +1,7 @@
 import covers from "@/lib/assets/examples.json";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SiteHeader } from "@/components/app/site-header";
+import { AppShell } from "@/components/app/app-shell";
 import { AppThumbnail } from "@/components/app/app-thumbnail";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,8 +15,7 @@ export const metadata: Metadata = { title: "Discover · Atoms Lite" };
 export default async function DiscoverPage() {
   const [user, apps] = await Promise.all([getCurrentUser(), listPublished()]);
   return (
-    <div className="min-h-dvh">
-      <SiteHeader email={user?.email} />
+    <AppShell user={user} title="Discover">
       <main className="mx-auto max-w-[1120px] px-4 pb-24 pt-10 sm:px-6">
         <h1 className="font-serif text-display text-ink">Discover</h1>
         <p className="mt-2 text-md text-ink-2">Apps people built and published. Open one, or remix it into your own project.</p>
@@ -47,6 +46,6 @@ export default async function DiscoverPage() {
           </ul>
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }
