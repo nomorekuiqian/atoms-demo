@@ -195,11 +195,15 @@ async function generate(request: Request) {
       } finally {
         request.signal.removeEventListener("abort", abort);
         const usage = llm.usage();
-        const { error: usageError } = await admin.rpc("settle_generation_attempt", {
-          p_lease:lease, p_user:user.id,
-          p_usage: mock || !usage.length ? null : {model:[...new Set(usage.map(u=>u.model))].join(","),input:usage.reduce((n,u)=>n+u.input,0),output:usage.reduce((n,u)=>n+u.output,0)},
-        });
-        if (usageError) console.error("[generation usage]",usageError.message);
+        try {
+          const { error: usageError } = await admin.rpc("settle_generation_attempt", {
+            p_lease:lease, p_user:user.id,
+            p_usage: mock || !usage.length ? null : {model:[...new Set(usage.map(u=>u.model))].join(","),input:usage.reduce((n,u)=>n+u.input,0),output:usage.reduce((n,u)=>n+u.output,0)},
+          });
+          if (usageError) console.error("[generation usage]",usageError.message);
+        } catch (error) {
+          console.error("[generation usage] settlement unavailable", error instanceof Error ? error.message : "unknown error");
+        }
         send({ type: "done" });
         clearInterval(ping);
         if (!closed) ctrl.close();
