@@ -21,21 +21,21 @@
 | 里程碑 | 时长 | 累计 | 主题 | 结束时能演示什么 | 对应 PRD 验收 | Commit |
 |---|---|---|---|---|---|---|
 | **M0** | 0.75h | 0.75h | 脚手架 + 上线 + 压测 | 空站点在 `*.insforge.site` 可访问；流式压测结论 | 7.4 工程质量（CI） | `chore: scaffold` |
-| **M1** | 1h | 1.75h | 账号 + 项目 | 注册/登录/体验账号；Dashboard 增删改项目 | F1、F2（创建部分）、F3；T1、T2、T12 | `feat: auth & projects` |
-| **M2** | 1.5h | 3.25h | 生成核心（无 UI） | 脚本调 `/api/generate` 输出完整事件流（mock 和真实各一次），DB 有版本 | F4 ②⑥、F7（后端）、F8（写库） | `feat: agent pipeline` |
-| **M3** | 1.5h | 4.75h | 工作台 UI | 浏览器里一句话生成番茄钟并能玩 | F4、F5、F6；T3、T4 | `feat: workspace` |
-| **M4** | 0.75h | 5.5h | 迭代 + 发布（**P0 完成**） | 二轮修改；`/p/{slug}` 隐身窗口可用 | F7、F8、F9；T5、T8、T9、T11 | `feat: iterate & publish` |
-| **M5** | 1.25h | 6.75h | P1 延展 | E2 → E1 → E3 → E6，做完一个部署一个 | E1–E3、E6；T6、T7 | `feat: …` 各一 |
-| **M6** | 0.5h | 7.25h | 打磨 | 空/错/加载状态、移动端、限流提示 | T13、7.4 | `style: polish` |
-| **M7** | 0.5h | 7.75h | 交付 | README、GIF、3 个已发布示例、T1–T13 全部通过 | 7.5、§8 | `docs: readme` |
-| 缓冲 | 0.25h | 8h | — | 吸收 M2/M3 的超时 | — | — |
+| **D0** | 0.5h | 1.25h | Design system（impeccable 流程） | `PRODUCT.md` + `DESIGN.md` + token 落进 Tailwind；一页组件样张 | 4.3 视觉风格（替代） | `feat(ui): design system` |
+| **M1** | 1h | 2.25h | 账号 + 项目 | 注册/登录/体验账号；Dashboard 增删改项目 | F1、F2（创建部分）、F3；T1、T2、T12 | `feat: auth & projects` |
+| **M2** | 1.5h | 3.75h | 生成核心（无 UI） | 脚本调 `/api/generate` 输出完整事件流（mock 和真实各一次），DB 有版本 | F4 ②⑥、F7（后端）、F8（写库） | `feat: agent pipeline` |
+| **M3** | 1.5h | 5.25h | 工作台 UI | 浏览器里一句话生成番茄钟并能玩 | F4、F5、F6；T3、T4 | `feat: workspace` |
+| **M4** | 0.75h | 6h | 迭代 + 发布（**P0 完成**） | 二轮修改；`/p/{slug}` 隐身窗口可用 | F7、F8、F9；T5、T8、T9、T11 | `feat: iterate & publish` |
+| **M5** | 1h | 7h | P1 延展 | E2 → E1 → E3 → E6，做完一个部署一个 | E1–E3、E6；T6、T7 | `feat: …` 各一 |
+| **M6** | 0.5h | 7.5h | 打磨 | 空/错/加载状态、移动端、限流提示 | T13、7.4 | `style: polish` |
+| **M7** | 0.5h | 8h | 交付 | README、GIF、3 个已发布示例、T1–T13 全部通过 | 7.5、§8 | `docs: readme` |
 
-> 相比 PRD §6.1：M4 从 0.5h 调到 0.75h（发布页还需要用 CSP sandbox 做同域隔离，见 M4.3），P1 压到 1.25h，留 15 分钟缓冲。
+> 相比 PRD §6.1：新增 D0（先出完整 design system 再写任何界面）；M4 从 0.5h 调到 0.75h（发布页还需要用 CSP sandbox 做同域隔离，见 M4.3）；P1 压到 1h；不再留缓冲，超时由 G3 吸收。
 
 ### 0.3 依赖关系与关键路径
 
 ```
-M0 ──► M1 ──► M2 ──► M3 ──► M4 ══ P0 完成 ══► M5 ──► M6 ──► M7
+M0 ──► D0 ──► M1 ──► M2 ──► M3 ──► M4 ══ P0 完成 ══► M5 ──► M6 ──► M7
  │             │      ▲
  └ G1 压测结论 ─┘      │
                M2 的 mock 回放 + fixture 是 M3/M4/M5 开发的前提
@@ -50,7 +50,7 @@ M0 ──► M1 ──► M2 ──► M3 ──► M4 ══ P0 完成 ══�
 |---|---|---|---|---|
 | **G1** | M0 末 | Sites 上 Route Handler 能否稳定流式 ≥ 150 秒（PRD 要求生成 ≤ 120 秒，留余量）？ | 能 → `/api/generate` 留在 Next.js | 不能 → 平移到 InsForge Edge Function（编排器是纯函数，只换路由层）；再不行用 Compute |
 | **G2** | M2 第一次真实调用前 | 额度是否够录 fixture + 联调？ | 已定：Free $1 + mock 优先 + 开发期全用 Haiku（PRD §1.4、§6.0） | 余额 < $0.3 → 先只录 1 个 fixture，其余 mock |
-| **G3** | M4 末 | P0 是否在 5.5h 内完成？ | 是 → 按序做 P1 | 否 → P1 只做 E2 + E1 的 Restore（满足"至少 2 项"） |
+| **G3** | M4 末 | P0 是否在 6h 内完成？ | 是 → 按序做 P1 | 否 → P1 只做 E2 + E1 的 Restore（满足"至少 2 项"） |
 | **G4** | M7 前 | 剩余额度够不够评审试用（约 7 次 Sonnet 生成）？项目会不会被暂停？ | 够 → 保持 Free + schedule 保活 | 不够 → 升级 Pro 或换自带 OpenRouter key（只改环境变量），PRD §9-1 |
 
 ### 0.5 每个里程碑通用的完成定义（DoD）
@@ -77,7 +77,7 @@ M0 ──► M1 ──► M2 ──► M3 ──► M4 ══ P0 完成 ══�
 |---|---|---|
 | 0.1 | 本地工具链 | Node 用 22 LTS（本机是 25，写 `.nvmrc` = `22`，CI 也用 22）；包管理用 `npm`（本机 pnpm 坏）；git 用 `/usr/bin/git` |
 | 0.2 | InsForge 项目 | `npx @insforge/cli` 创建并 link（`.insforge/project.json` 已 gitignore）。Free 组织可同时运行的项目数有限，create 被拒就先暂停/删除不用的项目（PRD §6.4） |
-| 0.3 | Next.js 骨架 | `create-next-app@15`（TS、ESLint、App Router、**不选 Tailwind**）→ 手动装 `tailwindcss@3.4 postcss autoprefixer` 并 `tailwindcss init -p`（create-next-app 15 默认装 Tailwind 4，不符合 AGENTS.md）→ `shadcn init`（应识别 v3 配置；不行就固定 `shadcn@2.3.0`）→ 装 `button input dialog tabs dropdown-menu sonner scroll-area tooltip` |
+| 0.3 | Next.js 骨架 | `create-next-app@15`（TS、ESLint、App Router、**不选 Tailwind**）→ 手动装 `tailwindcss@3.4 postcss autoprefixer` 并 `tailwindcss init -p`（create-next-app 15 默认装 Tailwind 4，不符合 AGENTS.md）→ 手写 `components.json` + `tailwind.config.ts`（shadcn v3 结构）。shadcn 组件**不在 M0 装**，放到 D0 按 design system 引入（实测 `shadcn@2.3.0 add` 在非交互环境会卡住，D0 用逐个复制源码的方式兜底） |
 | 0.4 | 依赖 | `@insforge/sdk zustand zod openai lucide-react shiki`；dev：`vitest` |
 | 0.5 | scripts | `dev / build / start / lint / typecheck (tsc --noEmit) / test (vitest run) / deploy (npx @insforge/cli deployments deploy .)` |
 | 0.6 | 数据库迁移 | `migrations/0001_init.sql`：PRD §5.4 全部表 + 索引（`messages(project_id, created_at)`、`usage_logs(user_id, created_at)`）+ `updated_at` 触发器 + RLS（见下）。用 `db migrations` 应用 |
@@ -125,6 +125,39 @@ create policy own_messages on messages for all
 - [ ] CI 首次运行绿
 
 **降级**：shadcn 与 Tailwind 3.4 折腾超过 10 分钟 → 只用 Tailwind，弹窗等用 Radix 原件手写。压测断流 → 记录断流秒数，M2 直接把生成接口写成 Edge Function。
+
+---
+
+## D0 — Design system（0.5h，impeccable 流程）
+
+**要求（来自用户）**：UI 设计按 impeccable 推荐的流程走，**先出完整的 design system，再写任何页面**。风格不必沿用 Atoms 官网（PRD §4.3 的"紫→蓝渐变"等描述作废，以 DESIGN.md 为准），但必须**简洁、美观、直白**：
+
+- 不写多余的文案：不要营销式口号、功能介绍段落、"AI 驱动"之类的空话；每个页面只留完成任务需要的字
+- 不放无用的组件：不要装饰性卡片、假数据统计、无功能的徽章/图标、为了"看起来丰富"而加的区块
+- 每个界面元素都要能回答"用户用它做什么"，答不出就删
+
+### 任务
+
+| # | 任务 | 细节 |
+|---|---|---|
+| D0.1 | 产品上下文 | `/impeccable init` → 生成 `PRODUCT.md`（用户、核心任务、语气：直白、少字；明确"不要什么"） |
+| D0.2 | 视觉方向 | 按 impeccable 的 new-work 流程定视觉世界：工作台、Dashboard 属于 **Operate** 模式（可扫读、一致、少装饰）；首页属于 Persuade，但只有一个输入框和示例，不做营销长页 |
+| D0.3 | Design system | 产出 `DESIGN.md`：色板（含明暗两套、4 个 Agent 角色色）、字体与字号阶梯、间距、圆角、阴影、动效原则、组件清单（按钮、输入框、Tab、对话气泡、Agent 卡片、文件树、工具栏、弹窗、Toast、空状态、错误条）及各状态（hover/focus/disabled/loading/error） |
+| D0.4 | 落地 token | `app/globals.css` 的 CSS 变量和 `tailwind.config.ts` 改成 DESIGN.md 的 token；按清单引入需要的 shadcn 组件并改成这套样式，**清单之外的组件不引入** |
+| D0.5 | 样张 | 临时页面 `/design-preview`（仅开发环境可访问；注意 App Router 里 `_` 开头的目录不会生成路由）展示全部组件和状态，明暗各截一张图；用 `/impeccable critique` 过一遍，修完再进入 M1 |
+
+### 验收标准
+
+- [ ] `PRODUCT.md`、`DESIGN.md` 已提交，DESIGN.md 覆盖上面列出的全部 token 和组件
+- [ ] 代码里的颜色、圆角、阴影都来自 token，`git grep -nE "#[0-9a-fA-F]{6}" app components` 无硬编码色值（生成应用的 fixture 除外）
+- [ ] 样张页明暗两种模式下文字对比度达到 WCAG AA
+- [ ] critique 没有遗留的"多余文案 / 无用组件"类问题
+
+### 之后每个做 UI 的里程碑（M1、M3、M4、M5、M6）都要遵守
+
+- 写界面前先读 `DESIGN.md`，只用其中定义的 token 和组件；需要新组件时先补进 DESIGN.md
+- 每个里程碑结束前用 `/impeccable critique`（或 `audit`）检查新页面，删掉多余文案和无用组件
+- M6 打磨用 `/impeccable polish`，不再另起风格
 
 ---
 
@@ -260,7 +293,7 @@ create policy own_messages on messages for all
 
 ---
 
-## M5 — P1 延展（1.25h）
+## M5 — P1 延展（1h）
 
 按顺序做，每项限时；超时立即按"降级"收尾、提交、部署，进入下一项。前两项完成即满足 PRD "P1 至少 2 项"。
 
@@ -312,7 +345,7 @@ create policy own_messages on messages for all
 
 ### E4 / E5
 
-只有前四项都完成且累计用时 < 6.5h 才做；否则写进 README 后续规划。
+只有前四项都完成且累计用时 < 7h 才做；否则写进 README 后续规划。
 
 ---
 
@@ -321,7 +354,7 @@ create policy own_messages on messages for all
 | 类别 | 检查项 |
 |---|---|
 | 状态 | Dashboard 空状态；工作台首次加载骨架；生成失败卡片 + "重试"；网络断开提示；429 提示"今日额度已用完（体验账号 10 次/天），明天再来或注册账号"；网关额度耗尽时同样友好提示 |
-| 视觉 | 用 `impeccable` / `frontend-design` 过一遍首页、Dashboard、工作台、Publish 弹窗；角色颜色在明暗模式下都可读 |
+| 视觉 | 用 `/impeccable polish` 按 DESIGN.md 过一遍首页、Dashboard、工作台、Publish 弹窗；再查一遍有没有多余文案和无用组件；角色颜色在明暗模式下都可读 |
 | 移动端 | 375px：首页、登录、Dashboard、工作台 Tab、发布页均无横向滚动 |
 | 可访问性 | 图标按钮有 `aria-label`；弹窗可 Esc 关闭、焦点不丢 |
 
@@ -396,18 +429,19 @@ create policy own_messages on messages for all
 | 生成代码质量差 | 真实调用中预览白屏 | 收紧 prompt、增加示例；把这次输出存成 fixture 复现；优先做 E2 |
 | 解析错乱 | 文件内容串到另一个文件 | 把原始输出存成单测 fixture，先修再继续 |
 | 额度提前耗尽 | 网关返回 429 / 额度不足 | 全面切 mock 继续开发；G4 提前执行 |
-| M2/M3 超时 | 累计用时超计划 30 分钟 | 用掉缓冲；仍不够则 G3 提前生效 |
+| M2/M3 超时 | 累计用时超计划 30 分钟 | 压缩 M5（只做 E2 + E1 Restore）；仍不够则 G3 提前生效 |
 | 部署失败 | `deployments status` 报错 | 本地 `npm run build` 复现；用 `deployments env` 核对环境变量 |
 
 ## 5. 进度记录
 
 | 里程碑 | 计划 | 实际用时 | 真实 LLM 花费 | 线上通过的用例 | 备注 |
 |---|---|---|---|---|---|
-| M0 | 0.75h | | | | G1： |
+| M0 | 0.75h | ≈0.6h | <$0.001（网关 ping） | 站点 200、150s 流式、RLS、CI | G1：✅ 150 条事件逐秒实时到达，生成接口留在 Route Handler |
+| D0 | 0.5h | | | | |
 | M1 | 1h | | | | |
 | M2 | 1.5h | | | | |
 | M3 | 1.5h | | | | |
 | M4 | 0.75h | | | | G3： |
-| M5 | 1.25h | | | | |
+| M5 | 1h | | | | |
 | M6 | 0.5h | | | | |
 | M7 | 0.5h | | | | G4： |

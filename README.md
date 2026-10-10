@@ -27,8 +27,25 @@
 
 ## 在线体验
 
-_部署后补充_
+https://53bg3mbj.insforge.site （开发中，目前只有占位页）
 
 ## 本地运行
 
-_脚手架完成后补充_
+需要 Node 22（见 `.nvmrc`）和已登录的 InsForge CLI。
+
+```bash
+npm install
+cp .env.example .env.local   # 按注释填写；LLM_MOCK=1 时不调用模型
+npm run dev
+```
+
+数据库迁移在 `migrations/`，认证配置在 `insforge.toml`：
+
+```bash
+npx @insforge/cli db migrations up --all
+npx @insforge/cli config apply
+```
+
+## 关键取舍
+
+- **生成接口放在 Next.js Route Handler。** M0 在线上压测：`/api/stream-test` 连续 150 秒每秒推一条 SSE，逐条实时到达、没有断流或缓冲（2026-10-10），足够覆盖一次完整生成（≤ 120 秒）。不需要迁到 Edge Function / Compute。
