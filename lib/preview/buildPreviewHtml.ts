@@ -2,6 +2,7 @@
  * Turn a multi-file project into one HTML document for a sandboxed iframe (srcdoc) or the public page.
  * Local <link rel="stylesheet"> and <script src> references are inlined; external URLs are left alone.
  */
+import { selectionScript } from "./selection-script";
 import type { Files } from "@/lib/agents/types";
 
 export type PreviewOptions = {
@@ -48,6 +49,12 @@ export function inlineAssets(html: string, files: Files): { html: string; missin
       return tag;
     }
     const rest = attrs.replace(/\s*\bsrc\s*=\s*(["']).*?\1/i, "");
+    // defer/async are ignored on inline classic scripts. A data URL keeps the
+    // external-script scheduling semantics while avoiding a network file path.
+    if (/(?:^|\s)(?:defer|async)(?:\s|=|$)/i.test(rest)) {
+      let binary="";for(const byte of new TextEncoder().encode(files[path]))binary+=String.fromCharCode(byte);
+      return `<script${rest} data-file="${path}" src="data:text/javascript;base64,${btoa(binary)}"></script>`;
+    }
     return `<script${rest} data-file="${path}">\n${escapeScript(files[path])}\n</script>`;
   });
 
@@ -101,6 +108,7 @@ function captureScript(storage: Record<string, string>, missing: string[], sessi
     post({ type: "error", message: "Unhandled promise rejection: " + (r && r.message ? r.message : fmt(r)), stack: r && String(r.stack).slice(0,8000) });
   });
   ${warn}.forEach(function (m) { post({ type: "console", level: "warn", text: m }); });
+  ${session ? selectionScript.replace("IDENTITY_PLACEHOLDER",identity).replace("VERSION_PLACEHOLDER",JSON.stringify(session.versionId)) : ""}
   var ready = function () { post({ type: "ready" }); };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready, { once: true });
   else ready();

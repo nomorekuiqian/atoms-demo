@@ -197,7 +197,7 @@ export async function* runPipeline(
             history: input.history,
             mode: input.mode,
             errors: input.errors,
-            references: input.references,
+            references: input.references, element:input.element,
           }),
         },
       ],

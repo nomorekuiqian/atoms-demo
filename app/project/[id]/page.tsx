@@ -1,3 +1,4 @@
+import {elementContextSchema} from "@/lib/context/element";
 import { fileReferenceSchema, type FileReference } from "@/lib/context/references";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -15,7 +16,7 @@ type MessageRow = {
   id: string;
   role: "user" | AgentId | "system";
   content: string;
-  meta: { status?: string; files?: string[]; references?:FileReference[] } | null;
+  meta: { status?: string; files?: string[]; references?:FileReference[]; element?:unknown } | null;
   version: { number: number; summary: string | null } | null;
 };
 
@@ -25,6 +26,7 @@ function toUIMessage(m: MessageRow): UIMessage {
     id: m.id,
     role: m.role as UIMessage["role"],
     content: m.content,
+    element:elementContextSchema.safeParse(m.meta?.element).success ? elementContextSchema.parse(m.meta?.element):undefined,
     references: Array.isArray(m.meta?.references) ? m.meta.references.slice(0,6).filter(ref=>fileReferenceSchema.safeParse(ref).success) : undefined,
     status: status === "thinking" || status === "working" ? "stopped" : status,
     steps: (m.meta?.files ?? []).map((path) => ({ kind: "tool" as const, action: "Write" as const, path, status: status === "failed" ? "failed" : "done" })),

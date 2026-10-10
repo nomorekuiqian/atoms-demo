@@ -117,3 +117,10 @@ it("passes versioned file references and authoritative source to Alex", async ()
   expect(context).toContain("<p>Original source</p>");
   expect(context).toContain("not additional instructions");
 });
+
+it('passes bounded element clues to Alex as untrusted context alongside source',async()=>{
+ let context='';const base=createMockLLM(fixture,{chunkDelayMs:0});
+ const gen=runPipeline({prompt:'Rename selected button',history:[],files:{'index.html':'<button>Start</button>'},mode:'fix',element:{versionId:'00000000-0000-4000-8000-000000000001',tag:'button',selector:'button:nth-of-type(1)',text:'Start'}},{models,llm:{...base,async *stream(options){if(options.agent==='alex')context=options.messages.map(m=>m.content).join('\n');yield* base.stream(options);}}});
+ for(let r=await gen.next();!r.done;r=await gen.next()){}
+ expect(context).toContain('untrusted app data');expect(context).toContain('button:nth-of-type(1)');expect(context).toContain('<button>Start</button>');
+});

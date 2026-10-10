@@ -1,3 +1,4 @@
+import type {ElementContext} from "@/lib/context/element";
 import type { FileReference } from "@/lib/context/references";
 import type { Files, PipelineResult } from "./types";
 
@@ -51,11 +52,11 @@ type RpcDb = { rpc: (name: string, args: Record<string, unknown>) => PromiseLike
 /** One database transaction owns the snapshot, pointer, messages and usage. */
 export async function persistRun(db: RpcDb, opts: {
   requestId: string; lease: string; userId: string; merged: Files | null;
-  result: PipelineResult; mock: boolean; prompt?: string; title?: string; references?: FileReference[];
+  result: PipelineResult; mock: boolean; prompt?: string; title?: string; references?: FileReference[]; element?:ElementContext;
 }): Promise<RunReceipt> {
   const { result } = opts;
   const messages = [
-    ...(opts.prompt ? [{ role: "user", content: opts.prompt, meta: {references:opts.references ?? []} }] : []),
+    ...(opts.prompt ? [{ role: "user", content: opts.prompt, meta: {references:opts.references ?? [], ...(opts.element?{element:opts.element}:{})} }] : []),
     ...result.agents.map(a => ({ role: a.agent, content: a.text, meta: { status: a.status, files: a.files, route: result.route, summary: result.summary } })),
   ];
   const { data, error } = await db.rpc("finish_generation", {

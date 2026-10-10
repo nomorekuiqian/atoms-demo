@@ -63,3 +63,11 @@ describe("buildPreviewHtml", () => {
     expect(buildPreviewHtml({ "app.js": "x" })).toContain("Nothing to preview yet.");
   });
 });
+
+it("preserves external defer scheduling using an exact UTF-8 data URL",()=>{
+ const code='document.querySelector("button").textContent="你好";';
+ const html=buildPreviewHtml({'index.html':'<head><script src="app.js" defer></script></head><body><button>before</button></body>','app.js':code});
+ expect(html).toContain('defer');
+ const encoded=html.match(/base64,([^"<>]+)/)?.[1];
+ expect(Buffer.from(encoded!,"base64").toString("utf8")).toBe(code);
+});

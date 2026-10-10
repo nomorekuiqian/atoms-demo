@@ -1,4 +1,5 @@
 "use client";
+import type {ElementContext} from "@/lib/context/element";
 
 import type { FileReference } from "@/lib/context/references";
 import type { Observation } from "@/lib/preview/protocol";
@@ -14,6 +15,7 @@ export type UIMessage = {
   role: "user" | "system" | AgentId;
   content: string;
   references?: FileReference[];
+  element?: ElementContext;
   status: MessageStatus;
   activity?: string;
   steps: Step[];
@@ -39,6 +41,8 @@ type State = WorkspaceInit & {
   status: "idle" | "streaming" | "stopping";
   observation: Observation | null;
   fileReferences: FileReference[];
+  selectedElement: ElementContext | null;
+  selecting: boolean;
   /** Files Alex is writing in the current run; merged into `files` when a version is created. */
   draft: Files;
   writing: string | null;
@@ -62,7 +66,7 @@ type State = WorkspaceInit & {
 type Actions = {
   init: (data: WorkspaceInit) => void;
   set: (patch: Partial<State>) => void;
-  startRun: (prompt: string | null, references?:FileReference[]) => void;
+  startRun: (prompt: string | null, references?:FileReference[],element?:ElementContext) => void;
   apply: (e: AgentEvent) => void;
   finishRun: (opts?: { stopped?: boolean; error?: string }) => void;
   log: (entry: Omit<ConsoleEntry, "id">) => void;
@@ -85,6 +89,7 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
   status: "idle",
   observation: null,
   fileReferences: [],
+  selectedElement:null,selecting:false,
   draft: {},
   writing: null,
   tab: "preview",
@@ -115,20 +120,21 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
       viewing: null,
       observation: null,
       fileReferences: [],
+  selectedElement:null,selecting:false,
       versionLoading: null,
       versionError: null,
     }),
 
   set: (patch) => set(patch),
 
-  startRun: (prompt,references) =>
+  startRun: (prompt,references,element) =>
     set((s) => ({
       status: "streaming",
       draft: {},
       writing: null,
       runError: null,
       lastPrompt: prompt ?? s.lastPrompt,
-      messages: prompt ? [...s.messages, { id: tempId(), role: "user", content: prompt, references, status: "done", steps: [] }] : s.messages,
+      messages: prompt ? [...s.messages, { id: tempId(), role: "user", content: prompt, references, element, status: "done", steps: [] }] : s.messages,
     })),
 
   apply: (e) => {

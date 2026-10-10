@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
+import type {ElementContext} from "@/lib/context/element";
 import type { FileReference } from "@/lib/context/references";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ExternalLink, Monitor, RotateCw, Smartphone, SquareTerminal, X } from "lucide-react";
+import { ExternalLink, Monitor, RotateCw, Smartphone, SquareTerminal, MousePointer2, X } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,23 +50,23 @@ function readAppStorage(projectId: string): Record<string, string> {
 function useRun() {
   const controller = React.useRef<AbortController | null>(null);
   const store = useWorkspace;
-  type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean; requestId?: string; expectedVersionId?: string | null; references?:FileReference[] };
+  type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean; requestId?: string; expectedVersionId?: string | null; references?:FileReference[]; element?:ElementContext };
   const lastRun = React.useRef<RunOptions | null>(null);
 
   const run = React.useCallback(async (opts: RunOptions) => {
     const s = store.getState();
     if (s.status !== "idle") return;
-    opts = { ...opts, references: opts.references ?? (opts.mode==="fix"?[]:s.fileReferences), requestId: opts.requestId ?? crypto.randomUUID(), expectedVersionId: opts.expectedVersionId === undefined ? s.currentVersionId : opts.expectedVersionId };
+    opts = { ...opts, element:opts.element ?? (opts.mode==="fix"?undefined:s.selectedElement??undefined), references: opts.references ?? (opts.mode==="fix"?[]:s.fileReferences), requestId: opts.requestId ?? crypto.randomUUID(), expectedVersionId: opts.expectedVersionId === undefined ? s.currentVersionId : opts.expectedVersionId };
     lastRun.current = opts;
-    s.startRun(opts.retry ? null : opts.prompt, opts.references);
-    if(!opts.retry && opts.mode!=="fix")s.set({fileReferences:[]});
+    s.startRun(opts.retry ? null : opts.prompt, opts.references,opts.element);
+    if(!opts.retry && opts.mode!=="fix")s.set({fileReferences:[],selectedElement:null,selecting:false});
     const ctrl = new AbortController();
     controller.current = ctrl;
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry, requestId: opts.requestId, expectedVersionId: opts.expectedVersionId, references: opts.references }),
+        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry, requestId: opts.requestId, expectedVersionId: opts.expectedVersionId, references: opts.references,element:opts.element }),
         signal: ctrl.signal,
       });
       if (!res.ok || !res.body) {
@@ -169,6 +170,7 @@ function Chat({
   const status = useWorkspace((s) => s.status);
   const runError = useWorkspace((s) => s.runError);
   const fileReferences=useWorkspace(s=>s.fileReferences);
+  const selectedElement=useWorkspace(s=>s.selectedElement);
   const [draft, setDraft] = React.useState("");
   const scroller = React.useRef<HTMLDivElement>(null);
   const pinned = React.useRef(true);
@@ -198,6 +200,7 @@ function Chat({
           ) : m.role === "user" ? (
             <div key={m.id} className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-xl bg-surface-2 px-4 py-2.5 text-md text-ink">
               {m.content}
+              {m.element && <p className="mt-2 text-xs text-ink-2" title={m.element.selector}>Selected {m.element.tag}: {m.element.text || "element"} · v{versions.find(v=>v.id===m.element?.versionId)?.number ?? "?"}</p>}
               {m.references?.length ? <div className="mt-2 flex flex-wrap gap-1">{m.references.map(ref=><span key={ref.path} className="rounded border px-2 py-0.5 font-mono text-xs" title={ref.versionId}>{ref.path} · {versions.find(v=>v.id===ref.versionId)?`v${versions.find(v=>v.id===ref.versionId)!.number}`:"saved version"}</span>)}</div>:null}
             </div>
           ) : (
@@ -229,6 +232,7 @@ function Chat({
         )}
       </div>
       <div className="px-2 pb-2">
+        {selectedElement && <div className="mb-2 min-w-0 rounded-md border bg-surface p-2 text-sm"><button type="button" aria-label="Remove selected element" className="flex w-full items-center gap-2 text-left" onClick={()=>useWorkspace.getState().set({selectedElement:null})}><MousePointer2 className="size-4 shrink-0" aria-hidden/><span className="min-w-0 flex-1 truncate">{selectedElement.tag}: {selectedElement.text || "element"}</span><X className="size-3 shrink-0" aria-hidden/></button><p className="mt-1 text-xs text-ink-2">A visual clue for Alex; dynamic elements may need more detail.</p></div>}
         {fileReferences.length>0 && <div aria-label="Selected file references" className="mb-2 flex flex-wrap gap-1">{fileReferences.map(ref=><button key={ref.path} type="button" aria-label={`Remove ${ref.path} reference`} className="inline-flex max-w-full items-center gap-1 rounded-md border bg-surface px-2 py-1 text-sm text-ink" onClick={()=>useWorkspace.getState().set({fileReferences:fileReferences.filter(r=>r.path!==ref.path)})}><span className="truncate font-mono">{ref.path}</span><span>v{versions.find(v=>v.id===ref.versionId)?.number ?? "?"}</span><X className="size-3" aria-hidden /></button>)}</div>}
         <Composer
           value={draft}
@@ -249,16 +253,17 @@ function Chat({
 
 /* ───────────────────────────── preview ───────────────────────────── */
 
-function ToolButton({ label, active, onClick, children }: { label: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
+function ToolButton({ label, active, disabled, onClick, children }: { label: string; active?: boolean; disabled?:boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <Tooltip label={label}>
       <button
         type="button"
         aria-label={label}
+        disabled={disabled}
         aria-pressed={active}
         onClick={onClick}
         className={cn(
-          "grid size-8 place-items-center rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink [&_svg]:size-4",
+          "grid size-8 place-items-center disabled:opacity-40 disabled:cursor-not-allowed rounded-full text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink [&_svg]:size-4",
           active && "bg-surface-2 text-ink",
         )}
       >
@@ -279,6 +284,7 @@ function Preview() {
   const device = useWorkspace((s) => s.device);
   const status = useWorkspace((s) => s.status);
   const frame = React.useRef<HTMLIFrameElement>(null);
+  const selecting=useWorkspace(s=>s.selecting);
 
   const [instanceId] = React.useState(() => crypto.randomUUID());
   const sessionId = `${instanceId}:${projectId}:${versionId}:${nonce}`;
@@ -290,6 +296,13 @@ function Preview() {
     [files, nonce, projectId, sessionId, versionId],
   );
 
+  React.useEffect(()=>{useWorkspace.getState().set({selectedElement:null,selecting:false});},[sessionId]);
+  React.useEffect(()=>{
+    frame.current?.contentWindow?.postMessage({type:"atoms-select",sessionId,versionId,enabled:selecting && !viewing && status==="idle"},"*");
+    const escape=(e:KeyboardEvent)=>{if(e.key==="Escape")useWorkspace.getState().set({selecting:false});};
+    window.addEventListener("keydown",escape);return()=>window.removeEventListener("keydown",escape);
+  },[selecting,sessionId,versionId,viewing,status]);
+
   React.useEffect(() => {
     if (!versionId || !srcDoc) return;
     const store = useWorkspace;
@@ -299,11 +312,18 @@ function Preview() {
       if(observation?.sessionId===sessionId && observation.status==="waiting")store.getState().set({observation:{...observation,status:"timeout"}});
     },10000);
     let watch: ReturnType<typeof setTimeout> | undefined;
+    let lastSelection=0;
     const onMessage = (e: MessageEvent) => {
       if(e.source !== frame.current?.contentWindow)return;
       const data=parsePreviewMessage(e.data,sessionId,versionId);
       if(!data)return;
       const {log,set,observation}=store.getState();
+      if(data.type==="selection-exit"){set({selecting:false});return;}
+      if(data.type==="element-selected"){
+        const state=store.getState();
+        if(!state.selecting || state.viewing || state.status!=="idle" || state.currentVersionId!==versionId || Date.now()-lastSelection<200)return;
+        lastSelection=Date.now();set({selectedElement:data.element,selecting:false,pane:"chat"});return;
+      }
       if(data.type==="ready") {
         clearTimeout(startup);
         if(observation?.sessionId!==sessionId || observation.readyAt)return;
@@ -332,12 +352,13 @@ function Preview() {
     );
   }
   return (
-    <div className={cn("h-full", device === "phone" && "grid place-items-center overflow-auto bg-surface-2 p-4")}>
+    <div className={cn("relative h-full", device === "phone" && "grid place-items-center overflow-auto bg-surface-2 p-4")}>
+      {selecting && <p className="pointer-events-none absolute inset-x-3 top-3 z-10 rounded-md border bg-surface px-3 py-2 text-center text-sm shadow-sm" role="status">Select an element · Esc to cancel</p>}
       <iframe
         ref={frame}
         key={nonce}
         title="App preview"
-        onLoad={() => frame.current?.contentWindow?.postMessage({type:"atoms-probe",sessionId,versionId},"*")}
+        onLoad={() => {frame.current?.contentWindow?.postMessage({type:"atoms-probe",sessionId,versionId},"*");frame.current?.contentWindow?.postMessage({type:"atoms-select",sessionId,versionId,enabled:useWorkspace.getState().selecting},"*");}}
         srcDoc={srcDoc}
         sandbox="allow-scripts allow-forms allow-modals"
         className={cn("block border-0 bg-[#ffffff]", device === "phone" ? "h-[760px] max-h-full w-[390px] max-w-full rounded-lg border border-line shadow-md" : "h-full w-full")}
@@ -413,6 +434,7 @@ function AppPanel({
   const versionLoading=useWorkspace(s=>s.versionLoading),versionError=useWorkspace(s=>s.versionError);
 
   const fileReferences=useWorkspace(s=>s.fileReferences);
+  const selecting=useWorkspace(s=>s.selecting);
   const selectedPath=activeFile && Object.hasOwn(codeFiles,activeFile)?activeFile:Object.keys(codeFiles)[0];
   const selectedAlready=fileReferences.some(ref=>ref.path===selectedPath && ref.versionId===currentVersionId);
   const referenceFile=()=>{
@@ -422,7 +444,7 @@ function AppPanel({
   };
 
   return (
-    <Tabs value={tab} onValueChange={v=>set({tab:v as typeof tab})} className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-sm">
+    <Tabs value={tab} onValueChange={v=>set({tab:v as typeof tab,selecting:false})} className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-sm">
       <div className="relative flex h-[84px] shrink-0 flex-col justify-between gap-1 border-b px-3 py-2">
           <TabsList className="self-start">
             <TabsTrigger value="preview">Preview</TabsTrigger>
@@ -438,6 +460,7 @@ function AppPanel({
                 <Smartphone />
               </ToolButton>
             </span>
+            <ToolButton label={selecting?"Cancel element selection":"Select element"} active={selecting} disabled={Boolean(viewing) || !idle || !currentVersionId} onClick={()=>set({selecting:!selecting})}><MousePointer2 /></ToolButton>
             <ToolButton label="Refresh" onClick={() => set({ previewNonce: useWorkspace.getState().previewNonce + 1, console: [], issuesDismissed: false })}>
               <RotateCw />
             </ToolButton>
@@ -548,7 +571,7 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
     <TooltipProvider>
       <div className="flex h-dvh flex-col bg-bg">
         <header className="flex h-14 shrink-0 items-center gap-2 px-3 sm:px-4">
-          <Link href="/dashboard" aria-label="All projects" className="grid size-8 place-items-center rounded-full text-ink hover:bg-surface-2">
+          <Link href="/dashboard" aria-label="All projects" className="grid size-8 place-items-center disabled:opacity-40 disabled:cursor-not-allowed rounded-full text-ink hover:bg-surface-2">
             <LogoMark className="size-5" />
           </Link>
           <h1 className="min-w-0 truncate text-base font-medium text-ink">{title}</h1>

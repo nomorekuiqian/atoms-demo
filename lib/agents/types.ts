@@ -1,3 +1,4 @@
+import type {ElementContext} from "@/lib/context/element";
 import type { FileReference } from "@/lib/context/references";
 import type { AgentId } from "./meta";
 
@@ -31,6 +32,7 @@ export type PipelineInput = {
   /** Runtime errors reported by the preview, for mode "fix". */
   errors?: string[];
   references?: FileReference[];
+  element?:ElementContext;
 };
 
 export type AgentOutput = {
