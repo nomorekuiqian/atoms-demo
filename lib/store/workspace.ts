@@ -155,6 +155,14 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
           messages: [...s.messages, { id: tempId(), role: e.agent, content: "", status: "thinking", activity: e.activity, steps: [] }],
         });
         break;
+      case "tool_activity":
+        set({ messages: updateLast(e.agent, m => ({
+          ...m, status: "working", activity: `${e.tool} · step ${e.step}`,
+          steps: m.steps.some(st => st.kind === "tool" && st.id === e.id)
+            ? m.steps.map(st => st.kind === "tool" && st.id === e.id ? { ...st, status: e.status } : st)
+            : [...m.steps, { kind: "tool", id: e.id, action: "Run", path: `${e.tool} · step ${e.step}`, status: e.status }],
+        })) });
+        break;
       case "text_delta":
         set({ messages: updateLast(e.agent, (m) => ({ ...m, content: m.content + e.delta })) });
         break;

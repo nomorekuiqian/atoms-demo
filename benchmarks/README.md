@@ -49,3 +49,10 @@ node scripts/report-acceptance-benchmark.mjs
 ```
 
 只重放已有产物可将归档的 `results.json` 复制到本地 `.insforge/acceptance-benchmark.json`，再启动开发页，不需要模型调用。部署不携带本地密钥或原始运行状态。
+
+
+## ReAct 迁移后的实验边界
+
+上文 2026-10-10 的 10 任务数据是旧固定流水线，不代表独立 ReAct 架构。新 `run-acceptance-benchmark.mjs` 默认写 `.insforge/acceptance-benchmark-react.json`，schema 2 / architecture `independent-react-v1`，拒绝混入旧结果。`report-acceptance-benchmark.mjs` 默认读取同一路径；两脚本均支持 `BENCHMARK_RESULT_FILE`。必须对新 versionId 重新采集浏览器观察，不能复用旧版通过记录。直接 Alex 仍使用历史单次生成作为基线，团队现在有多步预算，比较需同时报告总 token/延迟，不能声称两臂总预算相同。
+
+本轮仅跑新建/小改动/修复三条真实网关 smoke 与接口保存验证，详见 `docs/REACT-AGENTS.md`；尚未重跑完整十任务对照。

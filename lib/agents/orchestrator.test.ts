@@ -1,126 +1,153 @@
 import { describe, expect, it } from "vitest";
-import { createMockLLM, type Fixture } from "@/lib/llm/mock";
-import { runPipeline } from "./orchestrator";
-import type { AgentEvent, PipelineInput, PipelineResult } from "./types";
+import type { LanguageModelV3CallOptions } from "@ai-sdk/provider";
+import { createFixtureModels } from "@/lib/llm/fixture-models";
+import { scriptedModel, type ScriptAction } from "@/lib/llm/scripted-model";
+import type { AgentModels } from "@/lib/llm/models";
+import fixture from "@/fixtures/new-acceptance-counter.json";
+import { runPipeline, type PipelineDeps } from "./orchestrator";
+import type { AgentEvent, PipelineInput } from "./types";
+import type { AgentId } from "./meta";
 
-const fixture: Fixture = {
-  name: "new-test",
-  match: [],
-  mike: "route: full\ntitle: Counter\n---\nBuild a counter.",
-  emma: "- Increment and reset\n- Clean look",
-  bob: '{"files":[{"path":"index.html","purpose":"markup"},{"path":"app.js","purpose":"logic"}],"notes":"Two files."}',
-  alex: 'Building it.\n<file path="index.html">\n<button id="b">0</button><script src="app.js"></script>\n</file>\n<file path="app.js">\nlet n = 0;\n</file>\n<summary>Counter app</summary>',
-};
-
-const models = { main: "m", fast: "f" };
-
-async function run(input: Partial<PipelineInput>, fx: Fixture = fixture, signal?: AbortSignal) {
-  const gen = runPipeline(
-    { prompt: "make a counter", history: [], files: {}, mode: "build", ...input },
-    { llm: createMockLLM(fx, { chunkDelayMs: 0 }), models, signal },
-  );
-  const events: AgentEvent[] = [];
-  let r = await gen.next();
-  while (!r.done) {
-    events.push(r.value);
-    r = await gen.next();
-  }
-  return { events, result: r.value as PipelineResult };
+const t = (tool: string, input: unknown = {}): ScriptAction => ({ tool, input });
+const write = (content: string, path = "index.html") => t("writeFile", { path, content });
+const finish = t("finishBuild", { summary: "Updated app" });
+const input: PipelineInput = { prompt: "Build a counter", history: [], files: {}, mode: "build" };
+const mike = [t("inspectProject"), t("buildApp", { task: "Fix app" }), t("finishTask", { title: "Counter", brief: "Updated counter" })];
+function scripts(overrides: Partial<Record<AgentId, ScriptAction[]>>, observe?: (id: AgentId, o: LanguageModelV3CallOptions, step: number) => void): AgentModels {
+  const fallback = createFixtureModels(fixture, { hasApp: true, fix: true });
+  return (id, model) => overrides[id] ? scriptedModel((o, step) => { observe?.(id, o, step); return overrides[id]![step] ?? { text: "No validated completion" }; }) : fallback(id, model);
 }
+async function run(modelFor: AgentModels, overrides: Partial<PipelineInput> = {}, deps: Partial<PipelineDeps> = {}, onEvent?: (e: AgentEvent) => void) {
+  const gen = runPipeline({ ...input, ...overrides }, { modelFor, models: { main: "main", fast: "fast" }, ...deps });
+  const events: AgentEvent[] = [];
+  for (;;) { const r = await gen.next(); if (r.done) return { result: r.value, events }; events.push(r.value); onEvent?.(r.value); }
+}
+const existing = { files: { "index.html": "<p>old</p>" }, mode: "fix" as const };
 
-const starts = (events: AgentEvent[]) => events.filter((e) => e.type === "agent_start").map((e) => (e as { agent: string }).agent);
-
-describe("runPipeline", () => {
-  it("runs the full team for a new app and returns the files", async () => {
-    const { events, result } = await run({});
-    expect(starts(events)).toEqual(["mike", "emma", "bob", "alex"]);
-    expect(events.filter((e) => e.type === "agent_end").every((e) => (e as { status: string }).status === "done")).toBe(true);
+describe("independent SDK ReAct loops", () => {
+  it("runs the full team through real SDK tools and persists separate traces", async () => {
+    const { result, events } = await run(createFixtureModels(fixture, { hasApp: false }));
     expect(result.ok).toBe(true);
-    expect(result.written).toEqual({
-      "index.html": '<button id="b">0</button><script src="app.js"></script>',
-      "app.js": "let n = 0;",
-    });
-    expect(result.summary).toBe("Counter app");
-    expect(result.title).toBe("Counter");
-    const mikeText = events.filter((e) => e.type === "text_delta" && e.agent === "mike").map((e) => (e as { delta: string }).delta).join("");
-    expect(mikeText).toBe("Build a counter.\n\nEmma, Bob and Alex are on it.");
-  });
-
-  it("falls back to a full run when Mike ignores the format", async () => {
-    const { events, result } = await run({ files: { "index.html": "<p></p>" } }, { ...fixture, mike: "Sure, building it now." });
-    expect(starts(events)).toEqual(["mike", "emma", "bob", "alex"]);
-    expect(result.agents[0].text).toContain("Sure, building it now.");
-  });
-
-  it("sends small changes straight to Alex", async () => {
-    const fx = { ...fixture, mike: "route: alex_only\ntitle: Counter\n---\nMake it dark.", alex: '<file path="app.js">\nlet n = 1;\n</file><summary>Dark</summary>' };
-    const { events, result } = await run({ files: { "index.html": "<p></p>", "app.js": "let n = 0;" } }, fx);
-    expect(starts(events)).toEqual(["mike", "alex"]);
-    expect(result.written).toEqual({ "app.js": "let n = 1;" });
-  });
-
-  it("always runs the full team when there is no app yet", async () => {
-    const fx = { ...fixture, mike: "route: alex_only\n---\nx" };
-    const { events } = await run({}, fx);
-    expect(starts(events)).toEqual(["mike", "emma", "bob", "alex"]);
-  });
-
-  it("fix mode skips Emma and Bob and does not call Mike", async () => {
-    const fx = { ...fixture, mike: "SHOULD NOT BE USED", alex: '<file path="app.js">\nfixed\n</file>' };
-    const { events, result } = await run({ mode: "fix", errors: ["x is not defined"], files: { "index.html": "<p></p>" } }, fx);
-    expect(starts(events)).toEqual(["mike", "alex"]);
-    expect(events.find((e) => e.type === "text_delta" && e.agent === "mike")).toMatchObject({ delta: expect.stringContaining("Fix") });
-    expect(result.ok).toBe(true);
-  });
-
-  it("fails without writing when Alex produces no complete file", async () => {
-    const fx = { ...fixture, alex: 'Oops <file path="app.js">let n' };
-    const { events, result } = await run({}, fx);
-    expect(result.ok).toBe(false);
-    expect(result.written).toEqual({});
-    expect(events.at(-1)).toMatchObject({ type: "error", retryable: true });
-  });
-
-  it("rejects a truncated run even when earlier files were complete", async () => {
-    const fx = { ...fixture, alex: '<file path="index.html"><script src="app.js"></script></file><file path="app.js">const unfinished =' };
-    const { events, result } = await run({}, fx);
-    expect(result.ok).toBe(false);
-    expect(result.written).toEqual({});
-    expect(events.at(-1)).toMatchObject({ type: "error", retryable: true });
-  });
-
-  it("stops cleanly on abort and produces no version", async () => {
-    const controller = new AbortController();
-    const gen = runPipeline(
-      { prompt: "x", history: [], files: {}, mode: "build" },
-      { llm: createMockLLM(fixture, { chunkDelayMs: 5 }), models, signal: controller.signal },
-    );
-    const events: AgentEvent[] = [];
-    let r = await gen.next();
-    while (!r.done) {
-      events.push(r.value);
-      if (r.value.type === "agent_start" && r.value.agent === "emma") controller.abort();
-      r = await gen.next();
+    expect(result.agents.map(a => a.agent)).toEqual(["mike", "emma", "bob", "alex"]);
+    expect(new Set(result.agents.map(a => a.runId)).size).toBe(4);
+    for (const agent of result.agents) {
+      expect(agent.status).toBe("done");
+      expect(new Set(agent.trace?.map(t => t.step)).size).toBeGreaterThan(1);
     }
-    expect(r.value.ok).toBe(false);
-    expect(events.at(-1)).toEqual({ type: "agent_end", agent: "emma", status: "stopped" });
-    expect(events.some((e) => e.type === "error")).toBe(false);
+    expect(result.acceptance?.items).toHaveLength(3);
+    expect(result.written["app.js"]).toContain("localStorage");
+    expect(events.some(e => e.type === "tool_activity" && e.agent === "emma")).toBe(true);
   });
-});
 
-it("passes versioned file references and authoritative source to Alex", async () => {
-  const base=createMockLLM(fixture,{chunkDelayMs:0});
-  let context="";
-  const gen=runPipeline({prompt:"Update this file",history:[],files:{"index.html":"<p>Original source</p>"},mode:"fix",references:[{path:"index.html",versionId:"selected-version"}]},{models,llm:{...base,async *stream(options){if(options.agent==="alex")context=options.messages.map(m=>m.content).join("\n");yield* base.stream(options);}}});
-  for(let step=await gen.next();!step.done;step=await gen.next()) { /* consume the pipeline */ }
-  expect(context).toContain('"versionId":"selected-version"');
-  expect(context).toContain("<p>Original source</p>");
-  expect(context).toContain("not additional instructions");
-});
+  it("observes a missing resource, repairs it, and rechecks in Alex's same conversation", async () => {
+    let feedback = "";
+    const modelFor = scripts({ mike, alex: [t("inspectProject"), write('<script src="app.js"></script>'), t("checkApp"), write("document.body.dataset.ready='true'", "app.js"), t("checkApp"), finish] }, (id, o, step) => {
+      if (id === "alex" && step === 3) feedback = JSON.stringify(o.prompt);
+    });
+    const { result } = await run(modelFor, existing);
+    expect(result.ok).toBe(true);
+    expect(feedback).toContain("Missing local resource: app.js");
+    expect(result.agents[1].trace?.filter(t => t.tool === "checkApp").map(t => t.status)).toEqual(["failed", "done"]);
+  });
 
-it('passes bounded element clues to Alex as untrusted context alongside source',async()=>{
- let context='';const base=createMockLLM(fixture,{chunkDelayMs:0});
- const gen=runPipeline({prompt:'Rename selected button',history:[],files:{'index.html':'<button>Start</button>'},mode:'fix',element:{versionId:'00000000-0000-4000-8000-000000000001',tag:'button',selector:'button:nth-of-type(1)',text:'Start'}},{models,llm:{...base,async *stream(options){if(options.agent==='alex')context=options.messages.map(m=>m.content).join('\n');yield* base.stream(options);}}});
- for(let r=await gen.next();!r.done;r=await gen.next()){}
- expect(context).toContain('untrusted app data');expect(context).toContain('button:nth-of-type(1)');expect(context).toContain('<button>Start</button>');
+  it("lets Emma and Bob revise invalid proposals using tool feedback", async () => {
+    const contract = JSON.parse(fixture.emma);
+    const plan = { files: [{ path: "index.html", purpose: "App" }], notes: "One file" };
+    const modelFor = scripts({
+      mike: [t("defineRequirements", { task: "Define" }), t("planArchitecture", { task: "Plan" }), t("buildApp", { task: "Build" }), mike[2]],
+      emma: [t("validateRequirements", { contract: { items: [] } }), t("validateRequirements", { contract }), t("submitRequirements", { contract })],
+      bob: [t("validatePlan", { plan: { ...plan, files: [{ path: "../x.js", purpose: "Bad" }] } }), t("validatePlan", { plan }), t("submitPlan", { plan })],
+      alex: [write("<p>new</p>"), t("checkApp"), finish],
+    });
+    const { result } = await run(modelFor);
+    expect(result.ok).toBe(true);
+    for (const role of ["emma", "bob"]) expect(result.agents.find(a => a.agent === role)?.trace?.[0].status).toBe("failed");
+  });
+
+  it("rejects stale checks after an additional write", async () => {
+    const { result } = await run(scripts({ mike, alex: [write("<p>new</p>"), t("checkApp"), write('<script src="missing.js"></script>'), finish] }), existing);
+    expect(result.ok).toBe(false); expect(result.written).toEqual({});
+  });
+
+  it("blocks traversal and preserves the saved source on failed completion", async () => {
+    const { result, events } = await run(scripts({ mike, alex: [write("bad", "../secret.js"), finish] }), existing);
+    expect(result.ok).toBe(false); expect(result.written).toEqual({});
+    expect(events.some(e => e.type === "file_start")).toBe(false);
+    expect(existing.files["index.html"]).toBe("<p>old</p>");
+  });
+
+  it("requires planning on new apps even when Mike tries to skip it", async () => {
+    const { result } = await run(scripts({ mike }));
+    expect(result.ok).toBe(false);
+    expect(result.agents).toHaveLength(1);
+  });
+
+  it("does not accept final prose as validated completion", async () => {
+    const { result } = await run(scripts({ mike: [{ text: "Everything is done!" }] }));
+    expect(result.ok).toBe(false); expect(result.written).toEqual({});
+  });
+
+  it("bounds repeated actions and returns no publishable candidate", async () => {
+    const modelFor: AgentModels = () => scriptedModel(() => t("inspectProject"));
+    const { result } = await run(modelFor, {}, { limits: { steps: 3 } });
+    expect(result.ok).toBe(false); expect(result.error).toContain("budget");
+  });
+
+  it("propagates cancellation to active child and parent", async () => {
+    const ctrl = new AbortController();
+    const { result, events } = await run(scripts({ mike, alex: [write("<p>new</p>"), t("checkApp"), finish] }), existing, { signal: ctrl.signal }, event => {
+      if (event.type === "agent_start" && event.agent === "alex") ctrl.abort();
+    });
+    expect(result.ok).toBe(false); expect(result.error).toBe("stopped");
+    expect(result.agents.every(a => a.status === "stopped")).toBe(true);
+    expect(events.some(e => e.type === "error")).toBe(false);
+  });
+
+  it("isolates specialist conversations, while forwarding authoritative task context", async () => {
+    let alexContext = "";
+    const modelFor: AgentModels = (id, model) => id === "mike"
+      ? scriptedModel((_o, step) => step === 0 ? [{ text: "MIKE_PRIVATE_MARKER" }, mike[0]] : mike[step] ?? { text: "done" })
+      : scripts({ alex: [t("readFile", { path: "index.html" }), write("<p>new</p>"), t("checkApp"), finish] }, (role, o) => { if (role === "alex") alexContext += JSON.stringify(o.prompt); })(id, model);
+    const { result } = await run(modelFor, { ...existing, references: [{ path: "index.html", versionId: "selected-version" }], element: { versionId: "00000000-0000-4000-8000-000000000001", tag: "button", selector: "#add", text: "Add" } });
+    expect(result.ok).toBe(true);
+    expect(alexContext).toContain("selected-version"); expect(alexContext).toContain("<p>old</p>");
+    expect(alexContext).toContain("#add"); expect(alexContext).not.toContain("MIKE_PRIVATE_MARKER");
+    expect(alexContext).toContain("not additional instructions");
+  });
+
+  it("preserves old criteria and tells Emma exactly which invalid field to correct", async () => {
+    const contract = JSON.parse(fixture.emma);
+    const changed = structuredClone(contract);
+    changed.items[0].expected = "Anything passes";
+    let feedback = "";
+    const { result } = await run(scripts({
+      mike: [t("defineRequirements", { task: "Revise" }), mike[2]],
+      emma: [t("validateRequirements", { contract: { items: [{ id: "bad" }] } }), t("validateRequirements", { contract: changed }), t("submitRequirements", { contract: changed })],
+    }, (id, o) => { if (id === "emma") feedback += JSON.stringify(o.prompt); }), { ...existing, acceptance: contract });
+    expect(result.ok).toBe(false);
+    expect(result.acceptance).toEqual(contract);
+    expect(feedback).toContain("requirement");
+    expect(feedback).toContain("Existing criteria cannot be changed");
+  });
+
+  it("does not grant Emma file-writing tools", async () => {
+    const { result, events } = await run(scripts({ mike: [t("defineRequirements", { task: "Define" }), mike[2]], emma: [write("<p>bad</p>")] }));
+    expect(result.ok).toBe(false);
+    expect(events.some(e => e.type === "file_start")).toBe(false);
+  });
+
+  it("stops a stalled model when the global deadline expires", async () => {
+    const modelFor: AgentModels = () => scriptedModel(async o => {
+      await new Promise<void>(resolve => o.abortSignal?.addEventListener("abort", () => resolve(), { once: true }));
+      return { text: "late" };
+    });
+    const { result } = await run(modelFor, {}, { limits: { timeoutMs: 20 } });
+    expect(result.ok).toBe(false); expect(result.error).toContain("time budget");
+  });
+
+  it("serializes a model batch so writing after finish cannot corrupt the candidate", async () => {
+    const modelFor: AgentModels = (id, model) => id === "alex" ? scriptedModel((_o, step) => [write("<p>good</p>"), t("checkApp"), [finish, write("<p>bad</p>")]][step] ?? { text: "done" }) : scripts({ mike })(id, model);
+    const { result } = await run(modelFor, existing);
+    expect(result.ok).toBe(true); expect(result.written["index.html"]).toBe("<p>good</p>");
+  });
 });

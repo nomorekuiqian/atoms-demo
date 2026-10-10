@@ -8,7 +8,7 @@ export type StepStatus = "done" | "running" | "failed";
 
 export type Step =
   | { kind: "note"; text: string }
-  | { kind: "tool"; action: "Read" | "Write"; path: string; status: StepStatus };
+  | { kind: "tool"; id?: string; action: "Read" | "Write" | "Run"; path: string; status: StepStatus };
 
 const VISIBLE_TOOLS = 3;
 
@@ -17,7 +17,7 @@ function ToolRow({ step }: { step: Extract<Step, { kind: "tool" }> }) {
   return (
     <div className="flex h-9 items-center gap-2 rounded-md border bg-surface px-3 text-sm">
       <Icon className="size-4 text-ink-2" aria-hidden />
-      <span className="text-ink-2">{step.action === "Write" ? "Write file" : "Read file"}</span>
+      <span className="text-ink-2">{step.action === "Write" ? "Write file" : step.action === "Read" ? "Read file" : "Tool"}</span>
       <span className="truncate font-mono text-[12.5px] text-ink">{step.path}</span>
       <span className="ml-auto">
         {step.status === "done" && <Check className="size-4 text-success" aria-label="Done" />}

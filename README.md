@@ -22,20 +22,29 @@
 
 Next.js 15 App Router / TypeScript / Tailwind CSS **3.4** / Radix + shadcn 风格组件 / Zustand / Vitest。InsForge 提供 Postgres、Auth、RLS、Model Gateway 与 Sites 托管。
 
-生产使用 **真实 Claude Haiku 5.5**（四个角色均使用 `anthropic/claude-haiku-5.5`），`LLM_MOCK=0`。本地默认回放 fixture，不消耗 AI 额度。Mock 是固定录制结果，无法证明任意需求或错误真的被解决。
+生产使用 **真实 Claude Haiku 5.5**（四个角色均使用 `anthropic/claude-haiku-5.5`），`LLM_MOCK=0`。本地默认回放 fixture，不消耗 AI 额度。Mock 将已有 fixture 转换成脚本化模型响应，仍执行同一套 SDK 工具循环；它无法证明真实模型的规划和修复能力。
 
 ```mermaid
 flowchart LR
   UI[首页 / 工作台] -->|POST + SSE| API[Next Route Handler]
-  API --> Team[Mike → Emma → Bob → Alex]
-  Team --> Gateway[InsForge Model Gateway]
+  API --> Mike[Mike 独立 ReAct Loop]
+  Mike -->|按需委派| Emma[Emma 独立 ReAct Loop]
+  Mike -->|按需委派| Bob[Bob 独立 ReAct Loop]
+  Mike -->|按需委派| Alex[Alex 独立 ReAct Loop]
+  Alex --> Tools[读写候选文件 / 静态检查 / 修复]
+  Tools --> Alex
+  Mike --> Gateway[InsForge Model Gateway]
   API --> DB[(InsForge Postgres + RLS)]
   API -->|文件流 / 版本事件| UI
   UI --> Frame[沙箱 iframe 预览]
   DB --> Public[公开发布快照 / Discover / Remix]
 ```
 
-编排器 `lib/agents/` 不依赖 Next.js。新应用走四角色；小改动走 Mike→Alex；Resolve 将错误上下文交给 Alex。
+编排器 `lib/agents/` 不依赖 Next.js。使用 **Vercel AI SDK 7 `ToolLoopAgent`**，四个角色各有独立上下文、工具权限、完成条件与循环步数上限。Mike 通过工具按需委派；新应用要求 Emma 契约与 Bob 计划，已有应用可直接交给 Alex。每个角色必须通过工具完成校验，不能仅用最终文字宣称完成。
+
+Alex 在候选快照中读写文件、运行静态检查、观察失败并继续修复。写入工具参数校验通过后，完整文件通过 SSE 更新草稿；没有提交的候选不会覆盖旧版本。工具轨迹随消息保存，可在 Working process 中查看。全局上限为 48 次模型步骤、160 次工具调用、8 次委派和 240 秒；每步结算后检查累计 100,000 token 阈值（可能超出一个在途调用）。旧版的单次文本生成器只供历史基线脚本使用。
+
+**浏览器行为验收仍是独立入口，尚未接进服务端 ReAct loop；没有后台任务检查点或断线续跑。** [架构与本轮验证](docs/REACT-AGENTS.md)。
 
 ## 需求验收与行为检查
 
@@ -43,7 +52,7 @@ flowchart LR
 
 测试在单独沙箱和空测试存储中进行，普通预览数据不变。自动回传来自生成环境，只是有限范围的行为观察；“静态检查通过”“没有观察到报错”“人工确认”和“自动观察通过”不是同一件事。旧版本没有验收契约时会明确显示未记录。
 
-[交付证据](docs/ACCEPTANCE-DELIVERY-2026-10-10.md) · [真实模型对照实验与原始结果](benchmarks/README.md) · [公开验收样本](https://53bg3mbj.insforge.site/p/acceptance-benchmark-counter)。样本由真实团队实验生成后导入，版本保留来源标注。十个小任务中直接 Alex 为 10/10，团队为 9/10；不宣称多代理天然改善生成质量。
+[交付证据](docs/ACCEPTANCE-DELIVERY-2026-10-10.md) · [真实模型对照实验与原始结果](benchmarks/README.md) · [公开验收样本](https://53bg3mbj.insforge.site/p/acceptance-benchmark-counter)。样本由真实团队实验生成后导入，版本保留来源标注。**该实验针对迁移前固定流水线**，十个小任务中直接 Alex 为 10/10，团队为 9/10；不宣称多代理天然改善生成质量。
 
 ## 本地运行
 
@@ -77,7 +86,7 @@ npx -y @insforge/cli config apply
 | `LLM_MOCK` | 本地 `1` 回放 `fixtures/*.json`；生产 `0` |
 | `DEMO_EMAIL` / `DEMO_PASSWORD` | 一键体验登录，密码不送到浏览器 |
 | `DAILY_LIMIT` / `DAILY_LIMIT_DEMO` | 默认普通账号 30、共享体验账号 10 次/UTC 日 |
-| `RECORD_FIXTURES` | 可选，本地设 `1` 允许录制；生产禁用 |
+| 旧 `record` 请求 | 新循环返回明确 400；改用 `scripts/smoke-react.mjs` 记录工具轨迹 |
 | `NEXT_DIST_DIR` | 可选，本地多个服务使用独立构建目录 |
 
 ```bash

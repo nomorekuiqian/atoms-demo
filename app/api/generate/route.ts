@@ -3,8 +3,6 @@ import { fileReferenceSchema, referenceProblem } from "@/lib/context/references"
 import { createHash, randomUUID } from "node:crypto";
 import { insforgeAdmin } from "@/lib/insforge/admin";
 import type { RunReceipt } from "@/lib/agents/persist";
-import { writeFile } from "node:fs/promises";
-import path from "node:path";
 import { z } from "zod";
 import { FIXTURES } from "@/fixtures";
 import { isRunConflict } from "@/lib/agents/conflict";
@@ -13,10 +11,10 @@ import { runPipeline } from "@/lib/agents/orchestrator";
 import { loadHistory, loadProjectState, persistRun } from "@/lib/agents/persist";
 import type { AgentEvent, ChatTurn, PipelineResult } from "@/lib/agents/types";
 import { serverEnv } from "@/lib/env";
-import { createMockLLM, pickFixture } from "@/lib/llm/mock";
-import { createOpenRouterLLM } from "@/lib/llm/openrouter";
-import { createRecordingLLM, toFixture } from "@/lib/llm/recording";
-import type { LLM } from "@/lib/llm/types";
+import { pickFixture } from "@/lib/llm/mock";
+import { createGatewayModels, type AgentModels } from "@/lib/llm/models";
+import { createFixtureModels } from "@/lib/llm/fixture-models";
+import type { Usage } from "@/lib/llm/types";
 import { insforgeServer } from "@/lib/insforge/server";
 
 export const runtime = "nodejs";
@@ -100,19 +98,16 @@ async function generate(request: Request) {
     .slice(-6)
     .map((m) => ({ role: m.role as ChatTurn["role"], content: m.content }));
 
-  let llm: LLM;
-  let recorder: ReturnType<typeof createRecordingLLM> | undefined;
+  let modelFor: AgentModels;
+  const usage: Usage[] = [];
   if (mock) {
     if (FIXTURES.length === 0) return json(503, "No mock fixtures recorded yet.");
-    llm = createMockLLM(pickFixture(FIXTURES, body.mode === "fix" ? "fix-runtime-error" : prompt, Object.keys(state.files).length > 0));
+    modelFor = createFixtureModels(pickFixture(FIXTURES, body.mode === "fix" ? "fix-runtime-error" : prompt, Object.keys(state.files).length > 0), { hasApp: Object.keys(state.files).length > 0, fix: body.mode === "fix" });
   } else {
     if (!env.OPENROUTER_API_KEY) return json(503, "The AI service isn't configured.");
-    llm = createOpenRouterLLM({ baseURL: env.OPENROUTER_BASE_URL, apiKey: env.OPENROUTER_API_KEY });
-    if (body.record && process.env.NODE_ENV !== "production" && process.env.RECORD_FIXTURES === "1") {
-      recorder = createRecordingLLM(llm);
-      llm = recorder;
-    }
+    modelFor = createGatewayModels({ baseURL: env.OPENROUTER_BASE_URL, apiKey: env.OPENROUTER_API_KEY });
   }
+  if (body.record) return json(400, "Legacy text recording is unavailable for tool-loop runs. Use the ReAct smoke report instead.");
 
   const lease = randomUUID();
   const { data: claim, error: claimError } = await admin.rpc("claim_generation_v2", {
@@ -155,7 +150,7 @@ async function generate(request: Request) {
       try {
         const gen = runPipeline(
           { prompt: prompt!, acceptance:state.acceptance,requestId:body.requestId, history: turns, files: state.files, mode: body.mode, errors: body.errors, references: body.references, element:body.element },
-          { llm, models: { main: env.OPENROUTER_CHAT_MODEL, fast: env.OPENROUTER_FAST_MODEL }, signal: controller.signal },
+          { modelFor, usage, models: { main: env.OPENROUTER_CHAT_MODEL, fast: env.OPENROUTER_FAST_MODEL }, signal: controller.signal },
         );
         for (let r = await gen.next(); ; r = await gen.next()) {
           if (r.done) {
@@ -182,10 +177,6 @@ async function generate(request: Request) {
           send({ type: "version_created", versionId: version.id, number: version.number, summary: result.summary, title: renamed, files: receipt.files });
         }
 
-        if (recorder && result.ok && body.record) {
-          const fixture = toFixture(body.record, body.match ?? [], recorder.recorded);
-          await writeFile(path.join(process.cwd(), "fixtures", `${body.record}.json`), JSON.stringify(fixture, null, 2));
-        }
       } catch (err) {
         console.error("[generate]", err);
         const { error: releaseError } = await admin.from("generation_requests").update({status:"failed"}).eq("id",body.requestId).eq("lease",lease).eq("status","running");
@@ -194,7 +185,6 @@ async function generate(request: Request) {
         send({ type: "error", message: conflict ? "The project changed while building. Reload before making another change." : "Couldn't confirm this run. Retry to recover its saved result.", retryable: !conflict });
       } finally {
         request.signal.removeEventListener("abort", abort);
-        const usage = llm.usage();
         try {
           const { error: usageError } = await admin.rpc("settle_generation_attempt", {
             p_lease:lease, p_user:user.id,

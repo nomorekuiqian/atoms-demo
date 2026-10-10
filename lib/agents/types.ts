@@ -11,6 +11,7 @@ export type AgentRunStatus = "done" | "stopped" | "failed";
 /** Server-sent events streamed from /api/generate (PRD §5.3). */
 export type AgentEvent =
   | { type: "agent_start"; agent: AgentId; activity: string }
+  | ({ type: "tool_activity"; agent: AgentId; runId: string } & ToolTrace)
   | { type: "text_delta"; agent: AgentId; delta: string }
   | { type: "file_start"; path: string }
   | { type: "file_delta"; path: string; delta: string }
@@ -38,7 +39,11 @@ export type PipelineInput = {
   element?:ElementContext;
 };
 
+export type ToolTrace = { detail?: string; id: string; tool: string; step: number; status: "running" | "done" | "failed" };
+
 export type AgentOutput = {
+  runId?: string;
+  trace?: ToolTrace[];
   agent: AgentId;
   text: string;
   status: AgentRunStatus;

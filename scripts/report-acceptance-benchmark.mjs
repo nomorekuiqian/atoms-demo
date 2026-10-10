@@ -5,7 +5,7 @@ import { tasks } from "../benchmarks/acceptance-tasks.mjs";
 const require = createRequire(import.meta.url),
   { checkFiles } = require("../lib/checks/static.ts");
 const report = JSON.parse(
-  await readFile(".insforge/acceptance-benchmark.json", "utf8"),
+  await readFile(process.env.BENCHMARK_RESULT_FILE || ".insforge/acceptance-benchmark-react.json", "utf8"),
 );
 const raw = await readFile(
   ".insforge/acceptance-benchmark-observations.jsonl",

@@ -5,18 +5,20 @@ import { createHash, randomUUID } from "node:crypto";
 import { tasks } from "../benchmarks/acceptance-tasks.mjs";
 const require = createRequire(import.meta.url);
 const { createOpenRouterLLM } = require("../lib/llm/openrouter.ts");
+const { createGatewayModels } = require("../lib/llm/models.ts");
 const { runPipeline } = require("../lib/agents/orchestrator.ts");
 const { ALEX_SYSTEM, alexUser } = require("../lib/agents/prompts.ts");
 const { FileStreamParser } = require("../lib/parser/fileStreamParser.ts");
 const { mergeFiles } = require("../lib/agents/merge.ts");
 if (!process.env.OPENROUTER_API_KEY)
   throw new Error("Gateway key is required; this benchmark never uses mock.");
-const file = ".insforge/acceptance-benchmark.json";
+const file = process.env.BENCHMARK_RESULT_FILE || ".insforge/acceptance-benchmark-react.json";
 const model = process.env.OPENROUTER_CHAT_MODEL || "anthropic/claude-haiku-5.5";
 const limit = Number(process.env.BENCHMARK_TASK_LIMIT || 10);
 const hash = createHash("sha256").update(JSON.stringify(tasks)).digest("hex");
 let report = {
-  schema: 1,
+  schema: 2,
+  architecture: "independent-react-v1",
   createdAt: new Date().toISOString(),
   model,
   maxOutputTokens: 12000,
@@ -27,7 +29,7 @@ let report = {
 };
 try {
   report = JSON.parse(await readFile(file, "utf8"));
-  if (report.tasksHash !== hash || report.model !== model)
+  if (report.architecture !== "independent-react-v1" || report.tasksHash !== hash || report.model !== model)
     throw new Error(
       "Benchmark configuration changed. Archive the previous report first.",
     );
@@ -45,6 +47,7 @@ for (const [i, task] of tasks.slice(0, limit).entries())
     });
     const start = Date.now(),
       signal = AbortSignal.timeout(180000);
+    const teamUsage = [];
     let result,
       raw = "";
     const input = {
@@ -59,7 +62,8 @@ for (const [i, task] of tasks.slice(0, limit).entries())
     try {
       if (arm === "team") {
         const stream = runPipeline(input, {
-          llm,
+          modelFor: createGatewayModels({ baseURL: process.env.OPENROUTER_BASE_URL, apiKey: process.env.OPENROUTER_API_KEY }),
+          usage: teamUsage,
           models: { main: model, fast: model },
           signal,
         });
@@ -129,7 +133,7 @@ for (const [i, task] of tasks.slice(0, limit).entries())
       arm,
       model,
       elapsedMs: Date.now() - start,
-      usage: llm.usage(),
+      usage: arm === "team" ? teamUsage : llm.usage(),
       ok: result.ok,
       error: result.error ?? null,
       route: result.route ?? null,
@@ -147,7 +151,7 @@ for (const [i, task] of tasks.slice(0, limit).entries())
       result.ok ? "generated" : "FAILED",
       Date.now() - start,
       "ms",
-      JSON.stringify(llm.usage()),
+      JSON.stringify(arm === "team" ? teamUsage : llm.usage()),
     );
     if (!result.ok)
       throw new Error(

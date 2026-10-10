@@ -61,7 +61,7 @@ export async function persistRun(db: RpcDb, opts: {
   const { result } = opts;
   const messages = [
     ...(opts.prompt ? [{ role: "user", content: opts.prompt, meta: {references:opts.references ?? [], ...(opts.element?{element:opts.element}:{})} }] : []),
-    ...result.agents.map(a => ({ role: a.agent, content: a.text, meta: { status: a.status, files: a.files, route: result.route, summary: result.summary } })),
+    ...result.agents.map(a => ({ role: a.agent, content: a.text, meta: { status: a.status, files: a.files, trace: a.trace ?? [], runId: a.runId, route: result.route, summary: result.summary } })),
   ];
   const { data, error } = await db.rpc("finish_generation_v3", {
     p_id: opts.requestId, p_user: opts.userId, p_lease: opts.lease,

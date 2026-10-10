@@ -1,0 +1,582 @@
+{
+  "createdAt": "2026-10-10T08:30:27.780Z",
+  "sdk": "7.0.137",
+  "models": {
+    "main": "anthropic/claude-haiku-5.5",
+    "fast": "anthropic/claude-haiku-5.5"
+  },
+  "cases": [
+    {
+      "name": "new",
+      "elapsedMs": 32815,
+      "ok": true,
+      "usage": {
+        "input": 63074,
+        "output": 3412
+      },
+      "agents": [
+        {
+          "agent": "mike",
+          "status": "done",
+          "runId": "cc8cf77c-6e6f-4f97-a986-9c0a25568815",
+          "trace": [
+            {
+              "id": "fb324af9-b719-4bbe-8c75-a060e44b41d7",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "7859f718-437c-4ec4-b40e-3aa2e1d303f0",
+              "tool": "defineRequirements",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "c2afccb8-c30a-4908-82a7-109e86aa0731",
+              "tool": "planArchitecture",
+              "step": 3,
+              "status": "done"
+            },
+            {
+              "id": "8879d176-3c38-4304-a40d-496f7f48e8a8",
+              "tool": "buildApp",
+              "step": 4,
+              "status": "done"
+            },
+            {
+              "id": "0056ba91-4b44-49d1-a7d3-ada55f7dadd6",
+              "tool": "finishTask",
+              "step": 5,
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "agent": "emma",
+          "status": "done",
+          "runId": "6b2eaf13-fc32-4715-8b12-7c604b2009d3",
+          "trace": [
+            {
+              "id": "299a75f5-59bd-4533-b6e6-ce1b61b3e8f2",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "be7abbfd-d776-42db-a252-8f4419ad12af",
+              "tool": "validateRequirements",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "32bca03b-cf6d-45b4-8f32-303686356437",
+              "tool": "submitRequirements",
+              "step": 3,
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "agent": "bob",
+          "status": "done",
+          "runId": "2484098e-c7b1-42c0-95e6-86b0cd2175d0",
+          "trace": [
+            {
+              "id": "0445dcbf-d65f-4fc6-b930-8b67b5a87253",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "2a32b86b-c541-4330-b56b-a220a31f50f7",
+              "tool": "validatePlan",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "55c11d00-e83b-470a-8f28-ef9680bf9121",
+              "tool": "submitPlan",
+              "step": 3,
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "agent": "alex",
+          "status": "done",
+          "runId": "9339cbeb-2637-4cb6-b40e-bc3a40f592b8",
+          "trace": [
+            {
+              "id": "1e02643a-149a-4658-96ba-27ddcfe6fd59",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "cde8e546-4668-4907-9c0d-ba00d7476b8a",
+              "tool": "writeFile",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "efa3ccd9-46bb-4643-9b25-706d06eb6b88",
+              "tool": "writeFile",
+              "step": 3,
+              "status": "done"
+            },
+            {
+              "id": "d43f3d49-4320-4745-9778-50c65cb69cf5",
+              "tool": "checkApp",
+              "step": 4,
+              "status": "done"
+            },
+            {
+              "id": "7836e6d8-f2d5-404f-b1d1-6819649688d8",
+              "tool": "finishBuild",
+              "step": 5,
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "files": {
+        "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Counter</title>\n  <style>\n    body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f3f4f6; color: #111827; }\n    main { background: #fff; padding: 2rem 3rem; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }\n    #count { font-size: 4rem; font-weight: 700; margin: 0 0 1.5rem; }\n    .actions { display: flex; gap: 0.75rem; justify-content: center; }\n    button { font-size: 1rem; padding: 0.6rem 1.4rem; border: none; border-radius: 0.5rem; cursor: pointer; color: #fff; }\n    #add { background: #2563eb; }\n    #add:hover { background: #1d4ed8; }\n    #reset { background: #6b7280; }\n    #reset:hover { background: #4b5563; }\n    @media (max-width: 480px) { main { padding: 1.5rem; margin: 1rem; } #count { font-size: 3rem; } }\n  </style>\n</head>\n<body>\n  <main>\n    <p id=\"count\">0</p>\n    <div class=\"actions\">\n      <button id=\"add\">Add</button>\n      <button id=\"reset\">Reset</button>\n    </div>\n  </main>\n  <script src=\"app.js\"></script>\n</body>\n</html>\n",
+        "app.js": "const KEY = 'atoms-counter';\nconst countEl = document.getElementById('count');\nconst parsed = parseInt(localStorage.getItem(KEY), 10);\nlet count = Number.isNaN(parsed) ? 0 : parsed;\n\nfunction render() {\n  countEl.textContent = String(count);\n  localStorage.setItem(KEY, String(count));\n}\n\ndocument.getElementById('add').addEventListener('click', () => {\n  count += 1;\n  render();\n});\n\ndocument.getElementById('reset').addEventListener('click', () => {\n  count = 0;\n  render();\n});\n\nrender();\n"
+      },
+      "acceptance": {
+        "items": [
+          {
+            "id": "counter-add",
+            "requirement": "Add increments the count",
+            "procedure": "Click Add once",
+            "expected": "Count shows 1",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "1",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "counter-reset",
+            "requirement": "Reset sets the count to zero",
+            "procedure": "Click Add once, then click Reset",
+            "expected": "Count shows 0",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "click",
+                "selector": "#reset"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "0",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "counter-persist",
+            "requirement": "Count persists after reload",
+            "procedure": "Click Add once, reload the page",
+            "expected": "Count still shows 1",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "reload"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "1",
+                "match": "equals"
+              }
+            ]
+          }
+        ]
+      },
+      "static": {
+        "errors": [],
+        "dependencies": [],
+        "unchecked": [
+          "JavaScript behavior, imports and dynamically constructed resources are not statically checked."
+        ]
+      },
+      "browser": "not_run"
+    },
+    {
+      "name": "edit",
+      "elapsedMs": 18045,
+      "ok": true,
+      "usage": {
+        "input": 34196,
+        "output": 1257
+      },
+      "agents": [
+        {
+          "agent": "mike",
+          "status": "done",
+          "runId": "cfccbfc7-86af-474e-a917-37eabff5da96",
+          "trace": [
+            {
+              "id": "f44b9282-001a-426f-bfdb-7da7b2e7ce34",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "cc5cadae-630d-48de-8112-bbd5e9cbd297",
+              "tool": "buildApp",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "aa448132-ad43-4159-9bec-814a6966d3d7",
+              "tool": "finishTask",
+              "step": 3,
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "agent": "alex",
+          "status": "done",
+          "runId": "c5e6594d-c645-4d96-85e8-71f7ececc85b",
+          "trace": [
+            {
+              "id": "3c1a4cb0-f46f-4bbf-96d6-68ba276a48bf",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "475b5eaf-7783-42ca-b2d1-162f5f698677",
+              "tool": "readFile",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "138a9655-6260-4a4c-aa3c-91af8c8658fe",
+              "tool": "readFile",
+              "step": 3,
+              "status": "done"
+            },
+            {
+              "id": "8e50a0cc-c53b-48df-9d48-487b1c40dcef",
+              "tool": "writeFile",
+              "step": 4,
+              "status": "done"
+            },
+            {
+              "id": "a703028b-8dda-4143-ae40-30db8f577297",
+              "tool": "checkApp",
+              "step": 5,
+              "status": "done"
+            },
+            {
+              "id": "b7a21763-75c9-4b94-82fa-8aeb9a93e906",
+              "tool": "finishBuild",
+              "step": 7,
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "files": {
+        "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>My Daily Counter</title>\n  <style>\n    body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f3f4f6; color: #111827; }\n    main { background: #fff; padding: 2rem 3rem; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }\n    #count { font-size: 4rem; font-weight: 700; margin: 0 0 1.5rem; }\n    .actions { display: flex; gap: 0.75rem; justify-content: center; }\n    button { font-size: 1rem; padding: 0.6rem 1.4rem; border: none; border-radius: 0.5rem; cursor: pointer; color: #fff; }\n    #add { background: #2563eb; }\n    #add:hover { background: #1d4ed8; }\n    #reset { background: #6b7280; }\n    #reset:hover { background: #4b5563; }\n    @media (max-width: 480px) { main { padding: 1.5rem; margin: 1rem; } #count { font-size: 3rem; } }\n  </style>\n</head>\n<body>\n  <main>\n    <h1>My Daily Counter</h1>\n    <p id=\"count\">0</p>\n    <div class=\"actions\">\n      <button id=\"add\">Add</button>\n      <button id=\"reset\">Reset</button>\n    </div>\n  </main>\n  <script src=\"app.js\"></script>\n</body>\n</html>\n",
+        "app.js": "const KEY = 'atoms-counter';\nconst countEl = document.getElementById('count');\nconst parsed = parseInt(localStorage.getItem(KEY), 10);\nlet count = Number.isNaN(parsed) ? 0 : parsed;\n\nfunction render() {\n  countEl.textContent = String(count);\n  localStorage.setItem(KEY, String(count));\n}\n\ndocument.getElementById('add').addEventListener('click', () => {\n  count += 1;\n  render();\n});\n\ndocument.getElementById('reset').addEventListener('click', () => {\n  count = 0;\n  render();\n});\n\nrender();\n"
+      },
+      "acceptance": {
+        "items": [
+          {
+            "id": "counter-add",
+            "requirement": "Add increments the count",
+            "procedure": "Click Add once",
+            "expected": "Count shows 1",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "1",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "counter-reset",
+            "requirement": "Reset sets the count to zero",
+            "procedure": "Click Add once, then click Reset",
+            "expected": "Count shows 0",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "click",
+                "selector": "#reset"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "0",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "counter-persist",
+            "requirement": "Count persists after reload",
+            "procedure": "Click Add once, reload the page",
+            "expected": "Count still shows 1",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "reload"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "1",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "change-2816bfe33c2841a8a64b1b836f9eaebe",
+            "requirement": "Change the heading to My Daily Counter. Preserve all controls, selectors and persistence. This is a small copy edit.",
+            "procedure": "Inspect and interact with the changed app, then compare it with your request.",
+            "expected": "The requested change is present and the existing controls still work.",
+            "mode": "manual",
+            "steps": []
+          }
+        ]
+      },
+      "static": {
+        "errors": [],
+        "dependencies": [],
+        "unchecked": [
+          "JavaScript behavior, imports and dynamically constructed resources are not statically checked."
+        ]
+      },
+      "browser": "not_run"
+    },
+    {
+      "name": "fix",
+      "elapsedMs": 16250,
+      "ok": true,
+      "usage": {
+        "input": 31520,
+        "output": 1129
+      },
+      "agents": [
+        {
+          "agent": "mike",
+          "status": "done",
+          "runId": "27315e7d-7b7f-4e58-8b59-a7ff0407d49c",
+          "trace": [
+            {
+              "id": "cf42e997-6739-493b-a004-a9e13e238588",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "2a5e5853-9e1d-4536-bbd3-9696719e98a0",
+              "tool": "buildApp",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "464601f2-8e98-4317-970e-9c89eb0a4a37",
+              "tool": "finishTask",
+              "step": 3,
+              "status": "done"
+            }
+          ]
+        },
+        {
+          "agent": "alex",
+          "status": "done",
+          "runId": "6f9b6df5-6b75-4f68-93ac-68afb02de7f6",
+          "trace": [
+            {
+              "id": "c7f68606-5216-4e37-8533-6fb150076504",
+              "tool": "inspectProject",
+              "step": 1,
+              "status": "done"
+            },
+            {
+              "id": "6ebf6559-84fd-4466-ba2d-98a01cda8a79",
+              "tool": "readFile",
+              "step": 2,
+              "status": "done"
+            },
+            {
+              "id": "d1aea031-52de-4407-9144-bff025620219",
+              "tool": "readFile",
+              "step": 3,
+              "status": "done"
+            },
+            {
+              "id": "8fde1454-3e9d-495f-a64f-151c253fa399",
+              "tool": "writeFile",
+              "step": 4,
+              "status": "done"
+            },
+            {
+              "id": "465b1b5f-9792-4a93-9e1c-0a715c5f5bba",
+              "tool": "checkApp",
+              "step": 5,
+              "status": "done"
+            },
+            {
+              "id": "69e496f9-3094-4bbd-9695-95f02440c429",
+              "tool": "finishBuild",
+              "step": 6,
+              "status": "done"
+            }
+          ]
+        }
+      ],
+      "files": {
+        "index.html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>My Daily Counter</title>\n  <style>\n    body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f3f4f6; color: #111827; }\n    main { background: #fff; padding: 2rem 3rem; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }\n    #count { font-size: 4rem; font-weight: 700; margin: 0 0 1.5rem; }\n    .actions { display: flex; gap: 0.75rem; justify-content: center; }\n    button { font-size: 1rem; padding: 0.6rem 1.4rem; border: none; border-radius: 0.5rem; cursor: pointer; color: #fff; }\n    #add { background: #2563eb; }\n    #add:hover { background: #1d4ed8; }\n    #reset { background: #6b7280; }\n    #reset:hover { background: #4b5563; }\n    @media (max-width: 480px) { main { padding: 1.5rem; margin: 1rem; } #count { font-size: 3rem; } }\n  </style>\n</head>\n<body>\n  <main>\n    <h1>My Daily Counter</h1>\n    <p id=\"count\">0</p>\n    <div class=\"actions\">\n      <button id=\"add\">Add</button>\n      <button id=\"reset\">Reset</button>\n    </div>\n  </main>\n  <script src=\"app.js\"></script>\n</body>\n</html>\n",
+        "app.js": "const KEY = 'atoms-counter';\nconst countEl = document.getElementById('count');\nconst parsed = parseInt(localStorage.getItem(KEY), 10);\nlet count = Number.isNaN(parsed) ? 0 : parsed;\n\nfunction render() {\n  countEl.textContent = String(count);\n  localStorage.setItem(KEY, String(count));\n}\n\ndocument.getElementById('add').addEventListener('click', () => {\n  count += 1;\n  render();\n});\n\ndocument.getElementById('reset').addEventListener('click', () => {\n  count = 0;\n  render();\n});\n\nrender();\n"
+      },
+      "acceptance": {
+        "items": [
+          {
+            "id": "counter-add",
+            "requirement": "Add increments the count",
+            "procedure": "Click Add once",
+            "expected": "Count shows 1",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "1",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "counter-reset",
+            "requirement": "Reset sets the count to zero",
+            "procedure": "Click Add once, then click Reset",
+            "expected": "Count shows 0",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "click",
+                "selector": "#reset"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "0",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "counter-persist",
+            "requirement": "Count persists after reload",
+            "procedure": "Click Add once, reload the page",
+            "expected": "Count still shows 1",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "reload"
+              },
+              {
+                "kind": "expectText",
+                "selector": "#count",
+                "text": "1",
+                "match": "equals"
+              }
+            ]
+          },
+          {
+            "id": "change-2816bfe33c2841a8a64b1b836f9eaebe",
+            "requirement": "Change the heading to My Daily Counter. Preserve all controls, selectors and persistence. This is a small copy edit.",
+            "procedure": "Inspect and interact with the changed app, then compare it with your request.",
+            "expected": "The requested change is present and the existing controls still work.",
+            "mode": "manual",
+            "steps": []
+          }
+        ]
+      },
+      "static": {
+        "errors": [],
+        "dependencies": [],
+        "unchecked": [
+          "JavaScript behavior, imports and dynamically constructed resources are not statically checked."
+        ]
+      },
+      "browser": "not_run"
+    }
+  ],
+  "apiMock": {
+    "checks": {
+      "Generation HTTP 200": true,
+      "No generation error": true,
+      "Version created": true,
+      "Tool activity streamed": true,
+      "Version contract persisted": true,
+      "Saved snapshot static checks pass": true,
+      "Messages readable through owner RLS": true,
+      "mike independent trace persisted": true,
+      "mike trace restored for UI": true,
+      "emma independent trace persisted": true,
+      "emma trace restored for UI": true,
+      "bob independent trace persisted": true,
+      "bob trace restored for UI": true,
+      "alex independent trace persisted": true,
+      "alex trace restored for UI": true,
+      "Idempotent replay HTTP success": true,
+      "Replay returns same version": true,
+      "Replay does not start another agent": true
+    },
+    "cleanedUp": true
+  }
+}
