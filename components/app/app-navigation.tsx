@@ -18,7 +18,7 @@ export function AppNavigation({ signedIn, recent, failed, mobile = false }: Prop
     { label: "Home", href: "/", icon: Home },
     { label: "My projects", href: signedIn ? "/dashboard" : "/login?next=%2Fdashboard", icon: FolderOpen, active: "/dashboard" },
     { label: "Discover", href: "/discover", icon: Compass },
-    { label: "AI team", href: "/#team", icon: Users },
+    { label: "AI team", href: "/team", icon: Users },
   ];
   const content = <div className="flex h-full flex-col">
     <Link href="/" aria-label="Atoms Lite home" className="mb-8 block w-fit rounded-sm" onClick={() => setOpen(false)}><Logo /></Link>
@@ -31,7 +31,7 @@ export function AppNavigation({ signedIn, recent, failed, mobile = false }: Prop
       {signedIn ? failed ? <p className="px-3 py-3 text-sm text-ink-2">Couldn’t load projects. <Link className="underline" href="/dashboard" onClick={() => setOpen(false)}>View projects</Link></p> : recent.length ? <ul className="mt-2 space-y-1">{recent.map(p => <li key={p.id}><Link href={`/project/${p.id}`} onClick={() => setOpen(false)} className="flex min-h-10 items-center gap-2 rounded-md px-3 text-sm text-ink-2 hover:bg-surface-3 hover:text-ink"><FileCode2 className="size-4 shrink-0" aria-hidden /><span className="truncate">{p.title}</span></Link></li>)}</ul> : <p className="px-3 py-3 text-sm text-ink-3">Your next idea starts here.</p> : <p className="px-3 py-3 text-sm leading-relaxed text-ink-3"><Link href="/login" className="text-ink-2 underline underline-offset-4" onClick={() => setOpen(false)}>Log in</Link> to pick up where you left off.</p>}
     </div>
     <nav aria-label="Resources" className="mt-6 space-y-1 border-t pt-4">
-      <Link href="/#help" onClick={() => setOpen(false)} className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-ink-2 hover:bg-surface-3"><BookOpen className="size-4" aria-hidden />Help & getting started</Link>
+      <Link href="/help" onClick={() => setOpen(false)} className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-ink-2 hover:bg-surface-3"><BookOpen className="size-4" aria-hidden />Help & getting started</Link>
       <a href="https://github.com/nomorekuiqian/atoms-demo" target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm text-ink-2 hover:bg-surface-3"><FileCode2 className="size-4" aria-hidden />Source on GitHub</a>
     </nav>
   </div>;

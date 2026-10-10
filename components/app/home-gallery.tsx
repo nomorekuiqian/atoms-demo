@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { EXAMPLE_DETAILS } from "@/lib/examples/catalog";
 import covers from "@/lib/assets/examples.json";
 import { listPublished } from "@/lib/remix/load";
 import { AppThumbnail } from "./app-thumbnail";
@@ -19,6 +20,8 @@ export async function HomeGallery() {
         <Link href={`/p/${app.slug}`} className="text-sm font-medium text-ink hover:underline">{app.title}</Link>
         <Link href={`/remix/${app.slug}`} aria-label={`Remix ${app.title}`} className="flex min-h-8 shrink-0 items-center gap-1 text-sm text-ink-2 hover:text-ink">Remix<ArrowUpRight className="size-3.5" aria-hidden /></Link>
       </div>
+      {EXAMPLE_DETAILS[app.slug]?.template && <p className="mt-1 text-xs text-ink-3">Starter template</p>}
+      <p className="mt-1 text-sm leading-relaxed text-ink-2">{EXAMPLE_DETAILS[app.slug]?.description}</p>
     </li>)}
   </ul>;
 }

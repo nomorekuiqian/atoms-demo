@@ -42,6 +42,14 @@ export function HomeComposer({ signedIn }: { signedIn: boolean }) {
     [router, signedIn],
   );
 
+  React.useEffect(() => {
+    const prompt = params.get("prompt");
+    if (prompt && params.get("resume") !== "1") {
+      setDraft(prompt.slice(0, 4000));
+      inputRef.current?.focus();
+    }
+  }, [params]);
+
   // Back from login with a prompt typed while signed out: build it now.
   React.useEffect(() => {
     if (!signedIn || params.get("resume") !== "1") return;

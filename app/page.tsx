@@ -46,7 +46,7 @@ export default async function Home() {
         <Suspense fallback={<div role="status"><span className="sr-only">Loading examples…</span><div aria-hidden className="grid gap-5 sm:grid-cols-3">{[0,1,2].map(i => <div key={i}><div className="aspect-[16/10] rounded-lg bg-surface-3" /><div className="mt-3 h-5 w-32 rounded-sm bg-surface-3" /></div>)}</div></div>}><HomeGallery /></Suspense>
       </section>
       <section id="team" aria-labelledby="team-heading" className="mt-12 scroll-mt-6 border-t pt-8">
-        <h2 id="team-heading" className="text-xl font-semibold text-ink">Meet your AI team</h2>
+        <div className="flex items-center justify-between gap-4"><h2 id="team-heading" className="text-xl font-semibold text-ink">Meet your AI team</h2><Link href="/team" className="text-sm text-ink-2 underline underline-offset-4">How the team works</Link></div>
         <p className="mt-1 text-sm text-ink-2">One idea, four specialists working together.</p>
         <ul className="mt-6 grid grid-cols-2 gap-6 lg:grid-cols-4">
           {(Object.keys(AGENTS) as AgentId[]).map(agent => <li key={agent}>
@@ -56,7 +56,7 @@ export default async function Home() {
         </ul>
       </section>
       <section id="help" aria-labelledby="help-heading" className="mt-12 scroll-mt-6 border-t pt-8">
-        <h2 id="help-heading" className="mb-4 text-xl font-semibold text-ink">A little help getting started</h2>
+        <h2 id="help-heading" className="mb-2 text-xl font-semibold text-ink">A little help getting started</h2><Link href="/help" className="mb-4 inline-block text-sm text-ink-2 underline underline-offset-4">Browse all help articles</Link>
         {[
           ["What can I build?", "Try a timer, tracker, small game or personal page. Apps run in your browser and can remember data on your device. Start with one clear purpose, then ask for changes."],
           ["How do I start from an example?", "Open an app to try it. Choose Remix to copy its code into your own project, then tell the team what to change. You’ll be asked to log in first."],
