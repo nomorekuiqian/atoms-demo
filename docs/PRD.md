@@ -63,7 +63,7 @@
 | GitHub | ✅ 公开仓库 `nomorekuiqian/atoms-demo` 已建，PRD 与协作约定已推送 |
 | 模型 | ✅ Alex：`anthropic/claude-sonnet-5.5`；Mike/Emma/Bob：`anthropic/claude-haiku-5.5`（经 OpenRouter） |
 | 开发工具 | ✅ Claude Code（已装 insforge、frontend-design、impeccable、modern-web-guidance 等 Skill/插件） |
-| AI 额度方案 | ⏳ 待定：InsForge Pro 或自带 OpenRouter key（见 6.0、第 9 节） |
+| AI 额度方案 | ✅ 先用 InsForge 现有的 AI 额度（Free 计划 $1），按 6.0「省额度策略」开发；不够时再升级 Pro 或换自带 OpenRouter key（只改环境变量） |
 
 ### 1.5 Atoms 对标分析（来源：atoms.dev、atoms.dev/llms-full.txt、help.atoms.dev 帮助中心，2026-10 查阅）
 
@@ -393,7 +393,19 @@ create table usage_logs (                  -- 限流 & 成本观测
 | Alex 首次生成 | claude-sonnet-5.5 | 5k / 8k | ≈ $0.09 |
 | Alex 迭代（带上全部现有文件） | claude-sonnet-5.5 | 15k / 8k | ≈ $0.11 |
 
-→ 一次完整生成约 **$0.1**。Free 计划的 $1 AI 额度大约够 **10 次**，开发自测就会用完；Pro 的 $10 约 100 次。**结论：开发和评审期间需要 Pro 或自带 OpenRouter key**，并保留每用户每日限额。
+→ 一次完整生成约 **$0.1**。Free 计划的 $1 AI 额度大约够 **10 次**；Pro 的 $10 约 100 次。
+
+**决定：先用 InsForge 现有额度，不够再说。** 为此开发期间严格省额度：
+
+| 策略 | 做法 | 省多少 |
+|---|---|---|
+| **Mock 模式** | `LLM_MOCK=1` 时编排器不调模型，按真实格式回放录好的事件流（`fixtures/*.jsonl`，每个示例 Prompt 一份）。UI、解析器、写库、预览、版本、发布全部用 mock 开发和测试 | 开发期 90%+ 的调用 |
+| 录制一次、反复用 | 第一次真实生成时把 SSE 事件流存成 fixture，之后回放 | — |
+| 开发期全用 Haiku | `OPENROUTER_CHAT_MODEL` 开发时设为 `claude-haiku-5.5`（约 1/20 成本），只在最终验收前切回 Sonnet | 单次 $0.1 → 约 $0.005 |
+| 输出上限 | `max_completion_tokens` 限制在 8k；文件数 ≤ 6 | 防失控 |
+| 线上限额 | 每用户每日生成次数限制；网关 429 时友好提示 | 防评审期被刷 |
+
+额度预算：开发期真实调用控制在约 $0.3（录 fixture + 联调），保留约 $0.7（Sonnet 约 7 次）给最终验收和评审试用。如果评审期额度耗尽，评审只会看到"额度已用完"的提示，因此提交前要评估是否升级 Pro。
 
 ### 6.1 里程碑与验收标准
 
@@ -454,7 +466,8 @@ atoms-demo/
 |---|---|---|
 | LLM 生成代码跑不起来 | 体验崩 | 严格 system prompt + 示例；E2 自动修复；保留上个可用版本 |
 | 生成耗时长 / Sites 函数超时 | 生成中断 | H0 压测；流式 + `maxDuration`；限制文件数和 token；不够就迁到 Edge Function / Compute |
-| InsForge Free 的 AI 额度只有 $1 | 评审时生成失败 | 升级 Pro（$10 AI 额度）或在服务端换成自己的 OpenRouter key；前端遇到 429 时友好提示 |
+| InsForge Free 的 AI 额度只有 $1 | 开发中途或评审时生成失败 | Mock 模式开发 + 开发期用 Haiku（见 6.0）；提交前检查余额，必要时升级 Pro 或换 key；前端遇到 429 时友好提示 |
+| Free 组织可同时运行的项目数有限 | 新项目建不了 | 个人组织里已有 1 个运行中、2 个暂停的项目；如果 create 被拒，暂停或删除不用的项目 |
 | Free 项目 7 天无请求自动暂停 | 评审打不开 | 升级 Pro，或用 InsForge schedule 定时请求保活 |
 | 部署构建失败 | 浪费时间 | 每次部署前本地 `npm run build`；用 `deployments status` 看日志 |
 | 流式解析边界 bug | 文件内容错乱 | 状态机解析 + 单测覆盖跨 chunk |
@@ -552,7 +565,7 @@ atoms-demo/
 
 ## 9. 待确认事项
 
-1. **AI 额度**（阻塞 H2 之后的开发）：InsForge 升级 Pro（$25/月，含 $10 AI 额度、项目不暂停），还是 Free + 自己的 OpenRouter key？见 6.0 成本估算。
+1. **提交前是否升级 Pro**：开发期先用 Free 额度（已定）。提交前根据剩余额度决定：评审期如果额度不够或项目可能被暂停，再升级 Pro（$25/月）或换自带 OpenRouter key。
 2. 是否需要 GitHub OAuth 登录（要在 GitHub 建 OAuth App 并在 InsForge 后台配置，约 15–20 分钟）。默认不做，体验账号 + 邮箱注册已够。
 3. 产品名：仓库名用 `atoms-demo`；页面上的产品名默认 "Atoms Lite"，避免使用 Atoms 官方 logo 和配色。
 
