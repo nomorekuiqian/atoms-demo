@@ -1,3 +1,6 @@
+"use client";
+import * as React from "react";
+import Image from "next/image";
 import { AGENTS, type AgentId } from "@/lib/agents/meta";
 import { cn } from "@/lib/utils";
 
@@ -9,17 +12,20 @@ const TINT: Record<AgentId, string> = {
 };
 
 export function AgentAvatar({ agent, size = "md", className }: { agent: AgentId; size?: "sm" | "md"; className?: string }) {
+  const [failed,setFailed]=React.useState(false),[loaded,setLoaded]=React.useState(false);
   return (
     <span
+      data-agent-avatar={agent}
       aria-hidden
       className={cn(
-        "inline-grid shrink-0 place-items-center rounded-full font-semibold",
+        "relative inline-grid overflow-hidden shrink-0 place-items-center rounded-full font-semibold",
         size === "md" ? "size-8 text-sm" : "size-6 text-xs",
         TINT[agent],
         className,
       )}
     >
-      {AGENTS[agent].name[0]}
+      <span className={loaded && !failed?"invisible":""}>{AGENTS[agent].name[0]}</span>
+      {!failed && <Image src={`/assets/agents/${agent}-v1.webp`} alt="" width={96} height={96} unoptimized onLoad={()=>setLoaded(true)} onError={()=>setFailed(true)} className="absolute inset-0 size-full object-contain" />}
     </span>
   );
 }

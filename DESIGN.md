@@ -282,7 +282,7 @@ components:
 
 Atoms Lite is a calm room where a small team works and the thing they make is the only loud object in it. The interface is a near-white neutral ground with white raised surfaces, hairline borders, near-black ink, and one iris accent that appears only when something is focused, selected, or working. Everything around the generated app is grey on purpose, so the app's own colours read as the result, not as chrome.
 
-Density is relaxed and conversational on the chat side and tool-like on the app side. Chat runs directly on the ground with no bubble behind agent messages; agents are identified by soft-tinted monogram avatars and a "Name | Role" label, and their work is shown as a quiet timeline of hairline tool rows. The preview lives in one raised white panel. Instrument Serif appears only as a large headline; every other word is set in Geist, and code in Geist Mono.
+Density is relaxed and conversational on the chat side and tool-like on the app side. Chat runs directly on the ground with no bubble behind agent messages; agents are identified by original clay avatars with soft-tinted letter fallbacks and a "Name | Role" label, and their work is shown as a quiet timeline of hairline tool rows. The preview lives in one raised white panel. Instrument Serif appears only as a large headline; every other word is set in Geist, and code in Geist Mono.
 
 The system is refined rather than themed. It refuses metaphor worlds (kitchen pass, call sheet, transit map, ticket wallet were tried and rejected as stiff) and the dark-neon "AI builder" default. Light and dark themes share one token set.
 
@@ -304,7 +304,7 @@ A neutral greyscale studio with one cool iris accent and four soft identity tint
 - **Iris Ink** (`iris-ink`): text on an Iris Wash selected row.
 
 ### Secondary
-- **Agent tints** (`mike` / `mike-soft`, `emma` / `emma-soft`, `bob` / `bob-soft`, `alex` / `alex-soft`): Mike amber-brown, Emma plum, Bob slate blue, Alex forest green. Used only as the monogram avatar pair (soft background, deep letter). They identify who is speaking; they are never used for text, borders or surfaces elsewhere.
+- **Agent tints** (`mike` / `mike-soft`, `emma` / `emma-soft`, `bob` / `bob-soft`, `alex` / `alex-soft`): Mike amber-brown, Emma plum, Bob slate blue, Alex forest green. Used only inside the avatar (soft background, original image, deep fallback letter). They identify who is speaking; they are never used for text, borders or surfaces elsewhere.
 
 ### Tertiary
 - **Status** (`success` / `success-soft`, `danger` / `danger-soft`): the "Published" pill and done checks; failed agent pills, runtime-error icon, destructive menu items, field errors and the Delete button. Warning tokens exist in the stylesheet but no component uses them yet.
@@ -323,7 +323,7 @@ A neutral greyscale studio with one cool iris accent and four soft identity tint
 Dark theme (`.dark`) remaps the same roles: ground #161616, surface #1f1f1f / #2a2a2a / #333333, ink #ececec / #b4b4b4 / #8f8f8f, on-ink #0d0d0d, iris #8d8ff5 with wash #26264a and ink #bcbdff, hairlines at 8% / 16% white. Agent and status pairs invert to light letters on deep tints.
 
 ### Named Rules
-**The Only Colour Rule.** The generated app is the only colourful thing on screen. Chrome stays neutral; agent tints live only inside 32px (or 24px) monograms and status colours only inside small pills and icons.
+**The Only Colour Rule.** The generated app is the only colourful thing on screen. Chrome stays neutral; agent tints live only inside 32px (or 24px) avatars and status colours only inside small pills and icons.
 
 **The Iris Means Now Rule.** Iris marks focus, selection or work in progress, and nothing else. If an iris element is still on screen after the user has stopped interacting and nothing is running, it is decoration and must go.
 
@@ -411,7 +411,7 @@ Calm, soft-edged pills that never shout.
 The prompt box shared by home and workspace. Paper, strong hairline, 24px radius, Rest shadow (Float on home). Textarea with 16px top / 20px side padding (2 rows in the workspace at 15px, 3 rows on home at 17px), then a footer row with a 36px round action at the right: ink Send arrow; Soft Grey with Ink 3 arrow when empty; ink Stop square while a run is going. Enter sends, Shift+Enter adds a line. On focus the border turns iris with a 4px Iris Wash halo.
 
 ### Agent message (signature)
-A 32px soft-tinted monogram, then "Name | Role" (Ink name, Ink 2 role, a 12px hairline divider). While thinking or working, the current activity ("Writing app.js") sits at the right in a live sweep; stopped and failed runs show a status pill there instead. The body is 15px at 1.6 line height, indented 44px, with no bubble behind it. The user's own message is the only bubble: Soft Grey, 24px radius, right-aligned, at most 85% wide.
+A 32px original matte avatar on a soft tint, with a letter fallback, then "Name | Role" (Ink name, Ink 2 role, a 12px hairline divider). While thinking or working, the current activity ("Writing app.js") sits at the right in a live sweep; stopped and failed runs show a status pill there instead. The body is 15px at 1.6 line height, indented 44px, with no bubble behind it. The user's own message is the only bubble: Soft Grey, 24px radius, right-aligned, at most 85% wide.
 
 ### Working process (signature)
 A collapsible "Working process · N steps" trigger in 13px Ink 2 with a chevron that rotates over 200ms. Below it, a strong-hairline rail with 16px inset holds plain-text notes and hairline tool rows: 36px, paper, 12px radius, file icon, "Write file" / "Read file" in Ink 2, the path in mono Ink, and a status icon at the right (success check, iris spinner, danger cross). Only the last three tool rows show; earlier ones collapse into one "Show N earlier" caption chip in their own place in the timeline, with "Show less" at the end once expanded.
@@ -453,3 +453,9 @@ One grammar for state changes: 180ms with the out curve `cubic-bezier(0.16, 1, 0
 - **Don't** add uppercase eyebrows, kickers or letter-spaced labels above headlines.
 - **Don't** write filler copy: no slogans, no "AI-powered", no feature-explainer paragraphs, no invented testimonials or numbers.
 - **Don't** add a fourth shadow height or hard offset shadows.
+
+## Enhanced workspace and visual assets (2026-10-10)
+
+Version comparison stays inside the existing Versions panel: complete summary, version selector, file counts and a collapsed per-file diff. Export names the snapshot version. Selection uses the Iris highlight only inside the sandbox; its injected helper cannot inherit parent CSS variables. Selected context is a removable chip with a clear dynamic-DOM limitation.
+
+AgentAvatar consumes 96px transparent WebP at fixed 24/32px, empty alt beside real role labels, with the existing letter visible until load or after failure. Original artwork and prompts are separate from public derivatives. The five theme miniatures use the single THEMES palette/font/radius mapping and real DOM text inside keyboard-selectable menu items; they are style references, not promised pixel output. Empty preview artwork is decorative, 180px, absent for errors and existing apps. Discover uses a real screenshot only when project and published version match its manifest; screenshot failure leaves a text fallback.

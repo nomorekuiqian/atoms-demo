@@ -1,3 +1,4 @@
+import covers from "@/lib/assets/examples.json";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/app/site-header";
@@ -28,7 +29,7 @@ export default async function DiscoverPage() {
             {apps.map((app) => (
               <li key={app.slug} className="group overflow-hidden rounded-lg border bg-surface shadow-sm transition-shadow hover:shadow-md">
                 <Link href={`/p/${app.slug}`} className="block" aria-label={`Open ${app.title}`}>
-                  <AppThumbnail files={app.files} title={app.title} />
+                  <AppThumbnail files={app.files} title={app.title} cover={covers.find(c=>c.captureProjectId===app.projectId && c.captureVersionId===app.versionId)?.outputPath.replace(/^public/,"")} />
                 </Link>
                 <div className="flex items-center gap-3 border-t px-4 py-3">
                   <div className="min-w-0 flex-1">

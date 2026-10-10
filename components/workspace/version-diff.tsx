@@ -7,15 +7,17 @@ import {Button} from '@/components/ui/button';
 import {useWorkspace} from '@/lib/store/workspace';
 type Snapshot={id:string;number:number;summary:string;files:Files};
 function FileDiff({before,after}:{before:string;after:string}) {
+ const [error,setError]=React.useState(false);
  const [result,setResult]=React.useState<Awaited<ReturnType<typeof textChanges>>|null>(null);
- React.useEffect(()=>{let live=true;void textChanges(before,after).then(r=>{if(live)setResult(r);});return()=>{live=false;};},[before,after]);
+ React.useEffect(()=>{let live=true;void textChanges(before,after).then(r=>{if(live)setResult(r);}).catch(()=>{if(live)setError(true);});return()=>{live=false;};},[before,after]);
+ if(error)return <p role="alert" className="p-3 text-sm text-danger">Could not load the comparison. Hide and reopen file changes to retry.</p>;
  if(!result)return <p role="status" className="p-3 text-sm text-ink-2">Comparing…</p>;
  return <><p className="px-3 py-2 text-sm text-ink-2">Before: {lineEndings(before)} · After: {lineEndings(after)}{result.limited?' · Large change: showing complete before/after blocks.':''}</p><div className="max-h-96 overflow-auto border-t" tabIndex={0} aria-label="File differences"><pre className="w-max min-w-full text-xs leading-6">{result.changes.length===0 && <span className="block px-3">Empty file</span>}{result.changes.map((c,i)=><span key={i} className={`block px-3 ${c.added?'bg-accent-soft text-accent-ink':c.removed?'bg-danger-soft text-danger':'text-ink-2'}`}><span className="select-none">{c.added?'+ Added':c.removed?'− Removed':'Unchanged'}{':\n'}</span>{c.value || '(empty file)'}</span>)}</pre></div></>;
 }
 export function VersionDiff({active}:{active:boolean}) {
  const projectId=useWorkspace(s=>s.projectId),versions=useWorkspace(s=>s.versions),current=useWorkspace(s=>s.currentVersionId),published=useWorkspace(s=>s.publishedVersionId),viewing=useWorkspace(s=>s.viewing?.id);
  const [selected,setSelected]=React.useState<string>(''),[retry,setRetry]=React.useState(0),[data,setData]=React.useState<{version:Snapshot;previous:Snapshot|null}|null>(null),[error,setError]=React.useState(''),[path,setPath]=React.useState(''),[expanded,setExpanded]=React.useState(false);
- const id=selected || viewing || current;
+ const id=(versions.some(v=>v.id===selected)?selected:null) || viewing || current;
  React.useEffect(()=>{if(!active || !id)return;const controller=new AbortController();setData(null);setError('');setExpanded(false);
  void fetch(`/api/projects/${projectId}/versions/${id}?compare=previous`,{signal:controller.signal}).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.error??'Could not compare versions.');return b;}).then(b=>{setData(b);setPath(fileChanges(b.previous?.files??{},b.version.files)[0]?.path??'');}).catch(e=>{if(e.name!=='AbortError')setError(e.message);});return()=>controller.abort();},[active,id,projectId,retry]);
  const changes=data?fileChanges(data.previous?.files??{},data.version.files):[];

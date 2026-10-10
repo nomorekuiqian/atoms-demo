@@ -531,11 +531,11 @@ create policy own_messages on messages for all
 
 详细操作和四份提示词见 [VISUAL-ASSET-PLAN.md](VISUAL-ASSET-PLAN.md)。
 
-- [ ] 将 DESIGN 中 monogram 规则扩展为“原创头像 + 字母回退”，保留角色色与 24/32px 尺寸；更新样张页。
-- [ ] 使用 Codex 内置 image_gen 先生成 Mike，检查真实聊天尺寸后作为另外三位的风格参考；透明背景，原创角色，无烘焙文字。选稿是质量判断，不视为已上线。
-- [ ] 原图与提示词存 `design-assets/agents/v1/`；上线衍生图存 `public/assets/agents/`；补 `docs/assets-manifest.json`，记录来源、路径、尺寸、体积与状态。
-- [ ] 目标 96px 透明 WebP、每枚 ≤20KB/四枚 ≤80KB；PRD 最大验收预算为 ≤30KB/≤120KB。若需标准压缩工具，明确开发依赖并保留 alpha；不让生成临时目录成为网站依赖。
-- [ ] 接入 `AgentAvatar`，固定尺寸、空 alt（旁边已有身份文字）、图片失败字母回退；Logo 和 UI 保持 SVG/真实组件。可选空态/分享图独立提交，不阻塞四头像。
+- [x] 将 DESIGN 中 monogram 规则扩展为“原创头像 + 字母回退”，保留角色色与 24/32px 尺寸；更新样张页。
+- [x] 使用 Codex 内置 image_gen 先生成 Mike，检查真实聊天尺寸后作为另外三位的风格参考；透明背景，原创角色，无烘焙文字。选稿是质量判断，不视为已上线。
+- [x] 原图与提示词存 `design-assets/agents/v1/`；上线衍生图存 `public/assets/agents/`；补 `docs/assets-manifest.json`，记录来源、路径、尺寸、体积与状态。
+- [x] 目标 96px 透明 WebP、每枚 ≤20KB/四枚 ≤80KB；PRD 最大验收预算为 ≤30KB/≤120KB。若需标准压缩工具，明确开发依赖并保留 alpha；不让生成临时目录成为网站依赖。
+- [x] 接入 `AgentAvatar`，固定尺寸、空 alt（旁边已有身份文字）、图片失败字母回退；Logo 和 UI 保持 SVG/真实组件。可选空态/分享图独立提交，不阻塞四头像。
 - [ ] 构建部署，逐个确认线上资源 200、内容类型、体积，工作台深浅色/375px/慢网/404 无跳动。只有此时将 manifest 标为 deployed 并填 URL。
 
 **验证/回退：**T20；回退组件/素材路径即可，无需新图床或数据库。只生成图片不算完成此里程碑；不新增用户在线生图功能、计费或 Storage 流程。
@@ -556,6 +556,6 @@ create policy own_messages on messages for all
 | M9 | 已完成并部署 | `f29bed3` / `94111c6d` | T15 五组线上浏览器用例通过 |
 | M10 | 已完成 | cf321dd / f3bf777 | T16、T17 线上通过 |
 | M11 | 已完成 | 6bd06d7 | T18 线上通过 |
-| M12 | 已实现，真实模型线上待验收 | 本次提交 | T19 本地通过 |
-| M13 | 待实施 | — | T20；当前只完成素材方案 |
+| M12 | 已完成 | 0c62abe | T19 线上真实模型通过 |
+| M13 | 已接入，本地通过，线上待验收 | 本次提交 | T20 + V1–V4 本地通过 |
 | M14 | 待实施 | — | T21 |

@@ -4,6 +4,7 @@ import * as React from "react";
 import type {ElementContext} from "@/lib/context/element";
 import type { FileReference } from "@/lib/context/references";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { ExternalLink, Monitor, RotateCw, Smartphone, SquareTerminal, MousePointer2, X } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
@@ -285,6 +286,7 @@ function Preview() {
   const status = useWorkspace((s) => s.status);
   const frame = React.useRef<HTMLIFrameElement>(null);
   const selecting=useWorkspace(s=>s.selecting);
+  const runError=useWorkspace(s=>s.runError);
 
   const [instanceId] = React.useState(() => crypto.randomUUID());
   const sessionId = `${instanceId}:${projectId}:${versionId}:${nonce}`;
@@ -347,7 +349,7 @@ function Preview() {
   if (!srcDoc) {
     return (
       <div className="grid h-full place-items-center p-6 text-center">
-        <p className="text-base text-ink-2">{status === "idle" ? "Your app will appear here." : "Your app will appear here when Alex finishes."}</p>
+        <div className="max-w-xs">{!runError && <Image src="/assets/illustrations/empty-project-v1.webp" width={180} height={180} unoptimized alt="" className="mx-auto mb-4" />}<p className="text-base text-ink-2">{runError?"The build did not finish. Retry from the chat.":status === "idle" ? "Describe your app in the chat to begin." : "Your app will appear here when Alex finishes."}</p></div>
       </div>
     );
   }

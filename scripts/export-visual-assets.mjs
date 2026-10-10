@@ -1,0 +1,9 @@
+import sharp from 'sharp';import {readFile,writeFile,mkdir} from 'node:fs/promises';import {createHash} from 'node:crypto';
+const records=[];for(const id of ['mike','emma','bob','alex','empty-project']){
+ const avatar=id!=='empty-project',sourcePath=avatar?`design-assets/agents/v1/${id}.png`:`design-assets/illustrations/v1/${id}.png`,outputPath=avatar?`public/assets/agents/${id}-v1.webp`:`public/assets/illustrations/${id}-v1.webp`,size=avatar?96:360;
+ await mkdir(outputPath.slice(0,outputPath.lastIndexOf('/')),{recursive:true});await sharp(sourcePath).resize(size,size,{fit:'contain',background:{r:0,g:0,b:0,alpha:0}}).webp({quality:82,alphaQuality:100}).toFile(outputPath);
+ const bytes=await readFile(outputPath),meta=await sharp(bytes).metadata(),stats=await sharp(bytes).stats();if(!meta.hasAlpha || stats.isOpaque)throw new Error(`No transparency: ${id}`);if(bytes.length>(avatar?20000:80000))throw new Error(`Asset budget exceeded: ${id}`);
+ records.push({id,version:1,status:'integrated',sourcePath,outputPath,promptPath:avatar?'design-assets/agents/v1/prompts.md':'design-assets/illustrations/v1/prompt.md',referenceAssetIds:avatar&&id!=='mike'?['mike']:[],generatedAt:'2026-10-10',tool:'built-in image_gen',model:'unknown',width:meta.width,height:meta.height,bytes:bytes.length,alpha:true,sha256:createHash('sha256').update(bytes).digest('hex'),purpose:avatar?'Original role avatar':'Empty project preview illustration',surface:avatar?'AgentAvatar':'Workspace empty preview',acceptanceId:avatar?'T20 / V1':'V3',originality:'Original generated artwork; no third-party character reference.',deploymentUrl:null,deploymentId:null});console.log(id,meta.width,meta.height,bytes.length,'alpha');
+}
+try{records.push(...JSON.parse(await readFile('lib/assets/examples.json','utf8')).map(r=>({...r,status:'integrated'})));}catch{}
+await writeFile('docs/assets-manifest.json',JSON.stringify(records,null,2)+'\n');

@@ -269,10 +269,10 @@ export function Specimen({
                 </div>
               ))}
             </div>
-            <div className="mt-6 flex items-center gap-4">
+            <div className="mt-6 flex flex-wrap items-center gap-4">
               {(["mike", "emma", "bob", "alex"] as const).map((a) => (
                 <span key={a} className="flex items-center gap-2 text-base text-ink-2">
-                  <AgentAvatar agent={a} /> {a[0].toUpperCase() + a.slice(1)}
+                  <AgentAvatar agent={a} /><AgentAvatar agent={a} size="sm" /> {a[0].toUpperCase() + a.slice(1)}
                 </span>
               ))}
             </div>

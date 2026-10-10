@@ -33,7 +33,7 @@ export function VersionList({
             <button type="button" onClick={() => onView?.(v.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
               <span className="tabular w-8 shrink-0 text-sm font-semibold text-ink-2">v{v.number}</span>
               <span className="min-w-0 flex-1">
-                <span className="block line-clamp-2 text-base font-medium text-ink">{v.summary}</span>
+                <span className="line-clamp-2 text-base font-medium text-ink">{v.summary}</span>
                 <span className="block text-sm text-ink-2">
                   {v.when}
                   {current && " · Current"}

@@ -61,3 +61,9 @@
 | 线上验收 | 未执行 | 本轮线上浏览仅用于现有 UI 审计 |
 
 上线顺序建议：V2/V3 → V4 → V1/V5 → V6 → V7；可选项可不做，但必须明确记为延期或取消，不能勾选通过。
+
+## 5. 实施记录（2026-10-10）
+
+UI 前置已由 c3c861f / d062e8c6 线上验证；M13 本地 V1–V4 通过，证据见 ENHANCEMENTS-2026-10-10.md、assets-manifest.json 和 docs/screenshots/assets-* / theme-cards-* / empty-* / discover-covers-*。操作者：Codex，Chrome 桌面与 375px 模拟，不等同真实手机验收。原方案各条目前作为设计检查单保留，不将未实测的泛化条件勾成通过。
+
+V5、V7 已明确取消；V6 动态作品分享卡延期，原因是它需要独立的存储、权限、版本更新契约，超出 M13 四头像里程碑。V1–V4 即本批实际交付范围。当前 manifest 为 integrated；待线上资源与 UI 复验后更新 deployed。
