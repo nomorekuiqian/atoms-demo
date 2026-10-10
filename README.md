@@ -1,6 +1,6 @@
 # Atoms Lite
 
-用一句话生成可运行的 HTML/CSS/JS 应用。Mike 分派需求，Emma 整理产品要求，Bob 规划文件，Alex 编写代码；过程流式展示，支持继续修改、历史版本、运行错误修复和公开发布。增强版还支持版本检查、文件引用、点选元素修改、版本 Diff 与源码 ZIP。
+用一句话生成可运行的 HTML/CSS/JS 应用。Mike 分派需求，Emma 整理产品要求，Bob 规划文件，Alex 编写代码；过程流式展示，支持继续修改、历史版本、运行错误修复和公开发布。增强版还支持版本检查、文件引用、点选元素修改、版本 Diff 与源码 ZIP。现在也支持版本绑定的验收清单、独立沙箱行为检查、父版本退化提示和带证据修复。
 
 **[在线体验](https://53bg3mbj.insforge.site) · [GitHub](https://github.com/nomorekuiqian/atoms-demo) · [增强版验收](docs/RELEASE-ENHANCED-2026-10-10.md) · [v1.0 基线](docs/RELEASE-2026-10-10.md)**
 
@@ -36,6 +36,14 @@ flowchart LR
 ```
 
 编排器 `lib/agents/` 不依赖 Next.js。新应用走四角色；小改动走 Mike→Alex；Resolve 将错误上下文交给 Alex。
+
+## 需求验收与行为检查
+
+打开工作台 **Acceptance**：自动检查执行固定的点击、输入、文本/数量/属性断言及刷新；人工检查需记录实际观察。结果绑定源码摘要和不可变版本，新版本不能继承旧版“通过”。父版本同项曾通过、当前失败时显示退化；点击 **Repair this failure** 只触发一次修复，修复后需要重新运行检查。
+
+测试在单独沙箱和空测试存储中进行，普通预览数据不变。自动回传来自生成环境，只是有限范围的行为观察；“静态检查通过”“没有观察到报错”“人工确认”和“自动观察通过”不是同一件事。旧版本没有验收契约时会明确显示未记录。
+
+[交付证据](docs/ACCEPTANCE-DELIVERY-2026-10-10.md) · [真实模型对照实验与原始结果](benchmarks/README.md) · [公开验收样本](https://53bg3mbj.insforge.site/p/acceptance-benchmark-counter)。样本由真实团队实验生成后导入，版本保留来源标注。十个小任务中直接 Alex 为 10/10，团队为 9/10；不宣称多代理天然改善生成质量。
 
 ## 本地运行
 

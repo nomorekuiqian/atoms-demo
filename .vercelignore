@@ -4,3 +4,6 @@
 .impeccable/
 .claude/
 coverage/
+
+# Reproducible research outputs stay in Git, not the deployed runtime
+benchmarks/results/

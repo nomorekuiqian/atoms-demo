@@ -1,0 +1,11 @@
+import {readFile,writeFile} from 'node:fs/promises';
+import {createAdminClient} from '@insforge/sdk';
+import assert from 'node:assert/strict';
+const cfg=JSON.parse(await readFile('.insforge/acceptance-branch.json','utf8'));assert(cfg.appkey.includes('-'));
+const qa=JSON.parse(await readFile('.insforge/acceptance-qa.json','utf8'));
+const db=createAdminClient({baseUrl:`https://${cfg.appkey}.${cfg.region}.insforge.app`,apiKey:cfg.api_key}).database;
+const unwrap=r=>{assert.ifError(r.error);return r.data;};
+const p=unwrap(await db.from('projects').insert([{owner_id:qa.userId,title:'QA isolation target'}]).select('id').single());
+const files={'index.html':'<!doctype html><html><head><title>Isolation target</title><link rel=stylesheet href=./css/../style.css></head><body><h1>Untouched isolation target</h1><img src=./icons/../badge.svg alt="Green resource check" width="80" height="80"><output id="resource">Waiting</output><script src=./js/../app.js></script></body></html>','style.css':'body{background:#f0fff4;color:#123;font-family:system-ui}h1{font-size:24px}','app.js':"document.querySelector('#resource').textContent='Normalized script loaded';",'badge.svg':'<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="green"/></svg>'};
+const v=unwrap(await db.from('versions').insert([{project_id:p.id,number:1,files,summary:'Fixed resource and run-isolation target'}]).select('id').single());unwrap(await db.from('projects').update({current_version_id:v.id}).eq('id',p.id));
+await writeFile('.insforge/isolation-target.json',JSON.stringify({projectId:p.id,versionId:v.id}),{mode:0o600});console.log('Isolation target:',p.id);

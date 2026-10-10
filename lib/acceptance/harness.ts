@@ -47,7 +47,17 @@ export function acceptanceHarness(identity: {
         throw new Error("Unsupported selector or operation.");
       const elements = () => Array.from(query(step.selector)).filter(visible);
       if (step.kind === "click" || step.kind === "fill") {
-        const found = elements();
+        // Startup can precede the host's visible-frame render or app hydration.
+        // Wait for an actionable control, as assertions already wait for their result.
+        const deadline = Date.now() + 1800;
+        let found = elements();
+        while (
+          (found.length !== 1 || found[0].hasAttribute("disabled")) &&
+          Date.now() < deadline
+        ) {
+          await sleep(100);
+          found = elements();
+        }
         if (found.length !== 1) {
           status = "failed";
           throw new Error(
