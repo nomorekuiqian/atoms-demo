@@ -1,0 +1,6 @@
+# Local build/dev output and design working files never ship
+.next-dev/
+.next-rec/
+.impeccable/
+.claude/
+coverage/
