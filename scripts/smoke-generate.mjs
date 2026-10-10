@@ -1,5 +1,6 @@
 // Smoke test for /api/generate: signs in as the demo account, creates a project, streams a build.
 // Usage: node scripts/smoke-generate.mjs "<prompt>" [--app http://localhost:3000] [--project <id>] [--record new-x --match a,b] [--abort-after 3]
+import { randomUUID } from "node:crypto";
 import { createClient } from "@insforge/sdk";
 
 const args = process.argv.slice(2);
@@ -27,12 +28,15 @@ if (!projectId) {
 }
 console.log(`project ${projectId}`);
 
+const current = await client.database.from("projects").select("current_version_id").eq("id",projectId).single();
+if (current.error) throw current.error;
+const requestId = flag("request-id",randomUUID());
 const controller = new AbortController();
 const started = Date.now();
 const res = await fetch(`${app}/api/generate`, {
   method: "POST",
   headers: { "content-type": "application/json", cookie: `insforge_access_token=${session.accessToken}` },
-  body: JSON.stringify({ projectId, prompt, record, match, mode, errors }),
+  body: JSON.stringify({ projectId, prompt, record, match, mode, errors, requestId, expectedVersionId: current.data.current_version_id }),
   signal: controller.signal,
 });
 if (!res.ok) {

@@ -30,14 +30,14 @@ const a = await projectWithVersion(2);
 const b = await projectWithVersion(1);
 
 for (const [bad, why] of [["abc", "too short"], ["my_app_1", "underscore"], ["-abcdef", "leading hyphen"], ["dashboard", "reserved"]]) {
-  const r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({ slug: bad }) });
+  const r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({ slug: bad, versionId: a.versions[0] }) });
   ok(r.status === 400, `rejects "${bad}" (${why}) → ${r.status}`);
 }
-let r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({ slug: slug.toUpperCase() }) });
+let r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({ slug: slug.toUpperCase(), versionId: a.versions[0] }) });
 ok(r.status === 200 && (await r.json()).slug === slug, `normalises "${slug.toUpperCase()}" to lowercase and publishes`);
-r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({ slug }) });
+r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({ slug, versionId: a.versions[0] }) });
 ok(r.status === 200, `publishes /p/${slug} → ${r.status}`);
-r = await api(`/api/projects/${b.id}/publish`, { method: "POST", body: JSON.stringify({ slug }) });
+r = await api(`/api/projects/${b.id}/publish`, { method: "POST", body: JSON.stringify({ slug, versionId: b.versions[0] }) });
 ok(r.status === 409, `same slug on another project → ${r.status}`);
 r = await api(`/api/slug-available?slug=${slug}&projectId=${b.id}`);
 ok((await r.json()).available === false, "availability check reports the slug as taken");
@@ -48,7 +48,7 @@ ok(page.includes("v1"), "anonymous visitor sees v1");
 await c.database.from("projects").update({ current_version_id: a.versions[1] }).eq("id", a.id);
 page = await (await fetch(`${app}/p/${slug}`)).text();
 ok(page.includes("v1") && !page.includes("v2"), "a new version is not live until updated");
-r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({}) });
+r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({versionId:a.versions[1]}) });
 page = await (await fetch(`${app}/p/${slug}`)).text();
 ok(r.status === 200 && page.includes("v2"), "update to latest serves v2");
 

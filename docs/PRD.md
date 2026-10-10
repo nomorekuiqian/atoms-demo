@@ -339,7 +339,7 @@ type AgentEvent =
   | { type: 'file_delta'; path: string; delta: string }
   | { type: 'file_end'; path: string }
   | { type: 'agent_end'; agent: AgentId }
-  | { type: 'version_created'; versionId: string; number: number }
+  | { type: 'version_created'; versionId: string; number: number; files: Record<string, string>; summary: string }
   | { type: 'error'; message: string; retryable: boolean }
   | { type: 'done' };
 ```
@@ -402,6 +402,7 @@ create table usage_logs (                  -- 限流 & 成本观测
 
 - **RLS**：`projects/messages/versions` 仅 `owner_id = (select auth.uid())` 可读写（子表通过父项目 owner 判断）；已发布版本由服务端用 `createAdminClient({ apiKey })` 按 slug 读取，不对匿名开放整表。
 - **写入注意**：InsForge SDK 的 insert 必须传数组 `insert([{...}])`；所有方法返回 `{ data, error }`。
+- **请求账本（M8）**：`generation_requests` 保存请求 ID、项目/用户、输入摘要、预期版本、运行租约与最终收据；浏览器不可读写。`claim_generation` / `finish_generation` / `restore_snapshot` 仅服务端调用，项目锁与事务保护版本、消息、指针及用量。检查返回结果是版本绑定记录，浏览器观察仅在当前会话保存，不伪装成持久化测试报告。
 - **快照而非 diff**：小应用单版本 < 100KB，全量 jsonb 实现最简单，回滚 = 复制快照。
 
 ### 5.5 API 设计
@@ -412,10 +413,11 @@ create table usage_logs (                  -- 限流 & 成本观测
 | GET | `/api/projects` | 我的项目列表 |
 | GET | `/api/projects/:id` | 项目详情 + 消息 + 当前版本文件 |
 | PATCH / DELETE | `/api/projects/:id` | 重命名 / 删除 |
-| POST | `/api/generate` | `{projectId, prompt}` → SSE 流 |
-| GET | `/api/projects/:id/versions` | 版本列表 |
-| POST | `/api/projects/:id/restore` | `{versionId}` 恢复为新版本 |
-| POST | `/api/projects/:id/publish` | 发布当前版本，返回 slug |
+| POST | `/api/generate` | `{projectId, requestId, expectedVersionId, prompt?, mode?, errors?}` → SSE；同输入请求可重放，旧版本冲突 409 |
+| GET | `/api/projects/:id/versions` | 版本列表（工作台目前直接通过 RLS 查询） |
+| GET | `/api/projects/:id/versions/:versionId` | 所有者读取快照、SHA-256 与静态检查记录，private/no-store |
+| POST | `/api/projects/:id/restore` | `{versionId, expectedVersionId}` 原子恢复为新版本 |
+| POST | `/api/projects/:id/publish` | `{versionId, slug?}` 检查并发布指定当前快照，冲突 409、静态错误 422 |
 | POST | `/api/projects/:id/remix` | （P1）复制已发布项目 |
 | GET | `/p/:slug` | 公开渲染（Next.js route，返回 HTML） |
 

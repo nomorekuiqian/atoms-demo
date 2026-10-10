@@ -1,5 +1,6 @@
 "use client";
 
+import type { Observation } from "@/lib/preview/protocol";
 import { create } from "zustand";
 import type { AgentId } from "@/lib/agents/meta";
 import type { AgentEvent, Files } from "@/lib/agents/types";
@@ -34,6 +35,7 @@ export type WorkspaceInit = {
 
 type State = WorkspaceInit & {
   status: "idle" | "streaming" | "stopping";
+  observation: Observation | null;
   /** Files Alex is writing in the current run; merged into `files` when a version is created. */
   draft: Files;
   writing: string | null;
@@ -76,6 +78,7 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
   publishedVersionId: null,
   publishedSlug: null,
   status: "idle",
+  observation: null,
   draft: {},
   writing: null,
   tab: "preview",
@@ -102,6 +105,7 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
       console: [],
       runError: null,
       viewing: null,
+      observation: null,
     }),
 
   set: (patch) => set(patch),

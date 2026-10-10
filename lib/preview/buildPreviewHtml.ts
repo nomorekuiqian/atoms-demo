@@ -7,6 +7,7 @@ import type { Files } from "@/lib/agents/types";
 export type PreviewOptions = {
   /** Inject console/error capture and the storage bridge (workspace preview only). */
   inject?: boolean;
+  session?: { id: string; versionId: string };
   /** Seed for the in-frame localStorage shim. */
   storage?: Record<string, string>;
 };
@@ -54,12 +55,13 @@ export function inlineAssets(html: string, files: Files): { html: string; missin
 }
 
 /** Runs first inside the preview: storage shim + console/error forwarding to the parent workspace. */
-function captureScript(storage: Record<string, string>, missing: string[]): string {
+function captureScript(storage: Record<string, string>, missing: string[], session?: PreviewOptions["session"]): string {
+  const identity = JSON.stringify({sessionId:session?.id ?? "",versionId:session?.versionId ?? ""}).replace(/</g,"\\u003c");
   const seed = JSON.stringify(storage).replace(/</g, "\\u003c");
   const warn = JSON.stringify(missing.map((m) => `Missing file: ${m}`));
   return `<script data-atoms-preview>
 (function () {
-  var post = function (msg) { try { parent.postMessage(Object.assign({ source: "atoms-preview" }, msg), "*"); } catch (e) {} };
+  var post = function (msg) { try { parent.postMessage(Object.assign({ source: "atoms-preview" }, ${identity}, msg), "*"); } catch (e) {} };
   function makeStorage(seed, persist) {
     var data = Object.assign({}, seed);
     var sync = function () { if (persist) post({ type: "storage", data: data }); };
@@ -86,19 +88,26 @@ function captureScript(storage: Record<string, string>, missing: string[]): stri
     var orig = console[level];
     console[level] = function () {
       var args = Array.prototype.slice.call(arguments);
-      post({ type: "console", level: level, text: args.map(fmt).join(" ") });
+      post({ type: "console", level: level, text: args.map(fmt).join(" ").slice(0,8000) });
       return orig && orig.apply(console, arguments);
     };
   });
   window.addEventListener("error", function (e) {
-    post({ type: "error", message: e.message || "Error", stack: e.error && e.error.stack, line: e.lineno });
-  });
+    var resource = e.target && (e.target.src || e.target.href);
+    post({ type: "error", message: String(e.message || (resource ? "Failed to load resource: " + resource : "Error")).slice(0,8000), stack: e.error && String(e.error.stack).slice(0,8000), line: e.lineno });
+  }, true);
   window.addEventListener("unhandledrejection", function (e) {
     var r = e.reason;
-    post({ type: "error", message: "Unhandled promise rejection: " + (r && r.message ? r.message : fmt(r)), stack: r && r.stack });
+    post({ type: "error", message: "Unhandled promise rejection: " + (r && r.message ? r.message : fmt(r)), stack: r && String(r.stack).slice(0,8000) });
   });
   ${warn}.forEach(function (m) { post({ type: "console", level: "warn", text: m }); });
-  post({ type: "ready" });
+  var ready = function () { post({ type: "ready" }); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready, { once: true });
+  else ready();
+  window.addEventListener("message", function(e) {
+    var identity = ${identity};
+    if(e.source === parent && e.data && e.data.type === "atoms-probe" && e.data.sessionId === identity.sessionId && e.data.versionId === identity.versionId && document.readyState !== "loading") ready();
+  });
 })();
 </script>`;
 }
@@ -113,7 +122,7 @@ export function buildPreviewHtml(files: Files, opts: PreviewOptions = {}): strin
   const { html, missing } = inlineAssets(index, files);
   if (!opts.inject) return html;
 
-  const script = captureScript(opts.storage ?? {}, missing);
+  const script = captureScript(opts.storage ?? {}, missing, opts.session);
   const head = /<head\b[^>]*>/i.exec(html);
   if (head) return html.slice(0, head.index + head[0].length) + script + html.slice(head.index + head[0].length);
   const htmlTag = /<html\b[^>]*>/i.exec(html);

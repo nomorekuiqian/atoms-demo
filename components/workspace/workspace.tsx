@@ -10,6 +10,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu } from "@/components/app/user-menu";
 import { Toaster } from "@/components/ui/toaster";
+import { parsePreviewMessage } from "@/lib/preview/protocol";
+import { VersionChecks } from "./version-checks";
 import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
 import { readRun } from "@/lib/sse/readRun";
 import { insforgeBrowser } from "@/lib/insforge/client";
@@ -252,33 +254,56 @@ function Preview() {
   const currentFiles = useWorkspace((s) => s.files);
   const viewing = useWorkspace((s) => s.viewing);
   const files = viewing?.files ?? currentFiles;
+  const currentVersionId = useWorkspace((s) => s.currentVersionId);
+  const versionId = viewing?.id ?? currentVersionId;
   const nonce = useWorkspace((s) => s.previewNonce);
   const device = useWorkspace((s) => s.device);
   const status = useWorkspace((s) => s.status);
   const frame = React.useRef<HTMLIFrameElement>(null);
 
+  const [instanceId] = React.useState(() => crypto.randomUUID());
+  const sessionId = `${instanceId}:${projectId}:${versionId}:${nonce}`;
+
   // Built once per version / refresh; storage is read at that moment only.
   const srcDoc = React.useMemo(
-    () => (Object.keys(files).length ? buildPreviewHtml(files, { inject: true, storage: readAppStorage(projectId) }) : null),
+    () => (Object.keys(files).length ? buildPreviewHtml(files, { inject: true, storage: readAppStorage(projectId), session: {id:sessionId,versionId:versionId ?? ""} }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [files, nonce, projectId],
+    [files, nonce, projectId, sessionId, versionId],
   );
 
   React.useEffect(() => {
+    if (!versionId || !srcDoc) return;
+    const store = useWorkspace;
+    store.getState().set({observation:{kind:"browser",versionId,sessionId,status:"waiting",startedAt:new Date().toISOString(),errors:0}});
+    const startup = setTimeout(() => {
+      const observation = store.getState().observation;
+      if(observation?.sessionId===sessionId && observation.status==="waiting")store.getState().set({observation:{...observation,status:"timeout"}});
+    },10000);
+    let watch: ReturnType<typeof setTimeout> | undefined;
     const onMessage = (e: MessageEvent) => {
-      if (e.source !== frame.current?.contentWindow || e.data?.source !== "atoms-preview") return;
-      const { log } = useWorkspace.getState();
-      if (e.data.type === "console") log({ level: e.data.level, text: String(e.data.text) });
-      else if (e.data.type === "error") log({ level: "error", text: [e.data.message, e.data.stack].filter(Boolean).join("\n") });
-      else if (e.data.type === "storage") {
-        try {
-          localStorage.setItem(storageKey(projectId), JSON.stringify(e.data.data));
-        } catch {}
+      if(e.source !== frame.current?.contentWindow)return;
+      const data=parsePreviewMessage(e.data,sessionId,versionId);
+      if(!data)return;
+      const {log,set,observation}=store.getState();
+      if(data.type==="ready") {
+        clearTimeout(startup);
+        if(observation?.sessionId!==sessionId || observation.readyAt)return;
+        set({observation:{...observation,status:observation.errors ? "error":"observing",readyAt:new Date().toISOString()}});
+        watch=setTimeout(()=>{
+          const latest=store.getState().observation;
+          if(latest?.sessionId===sessionId)set({observation:{...latest,status:latest.errors?"error":"observed",observedAt:new Date().toISOString()}});
+        },3000);
+      } else if(data.type==="storage") {
+        try {localStorage.setItem(storageKey(projectId),JSON.stringify(data.data));}catch{}
+      } else {
+        const level=data.type==="error"?"error":data.level;
+        log({level,text:data.type==="error"?[data.message,data.stack].filter(Boolean).join("\n"):data.text});
+        if(level==="error" && observation?.sessionId===sessionId)set({observation:{...observation,status:"error",errors:observation.errors+1}});
       }
     };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [projectId]);
+    window.addEventListener("message",onMessage);
+    return ()=>{clearTimeout(startup);clearTimeout(watch);window.removeEventListener("message",onMessage);};
+  },[projectId,versionId,sessionId,srcDoc]);
 
   if (!srcDoc) {
     return (
@@ -293,6 +318,7 @@ function Preview() {
         ref={frame}
         key={nonce}
         title="App preview"
+        onLoad={() => frame.current?.contentWindow?.postMessage({type:"atoms-probe",sessionId,versionId},"*")}
         srcDoc={srcDoc}
         sandbox="allow-scripts allow-forms allow-modals"
         className={cn("block border-0 bg-[#ffffff]", device === "phone" ? "h-[760px] max-h-full w-[390px] max-w-full rounded-lg border border-line shadow-md" : "h-full w-full")}
@@ -404,6 +430,7 @@ function AppPanel({
           </div>
         )}
       </div>
+      <VersionChecks versionId={viewing?.id ?? currentVersionId} />
       {viewing && tab !== "versions" && (
         <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-accent-soft px-3 py-2 text-base">
           <span className="flex-1 text-accent-ink">Viewing v{viewing.number}. Your current version is unchanged.</span>

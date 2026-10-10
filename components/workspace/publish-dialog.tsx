@@ -94,13 +94,18 @@ export function PublishDialog() {
   const outdated = Boolean(slug && publishedVersionId !== currentVersionId);
 
   const publish = async (nextSlug: string) => {
+    const observation = useWorkspace.getState().observation;
+    if (observation?.versionId !== currentVersionId || observation.status !== "observed") {
+      setError(observation?.status === "error" ? "Resolve the preview errors before publishing." : "Preview this version and wait for the 3-second observation before publishing.");
+      return;
+    }
     setBusy("publish");
     setError(undefined);
     try {
       const res = await fetch(`/api/projects/${projectId}/publish`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug: nextSlug }),
+        body: JSON.stringify({ slug: nextSlug, versionId: currentVersionId }),
       });
       const body = await res.json();
       if (!res.ok) return setError(body.error ?? "Couldn't publish. Try again.");

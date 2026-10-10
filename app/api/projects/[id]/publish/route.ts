@@ -1,3 +1,5 @@
+import { checkVersion } from "@/lib/checks/server";
+import type { Files } from "@/lib/agents/types";
 import { z } from "zod";
 import { insforgeAdmin } from "@/lib/insforge/admin";
 import { insforgeServer } from "@/lib/insforge/server";
@@ -22,7 +24,7 @@ async function ownProject(id: string) {
   return { project: data as { id: string; current_version_id: string | null; published_slug: string | null; published_version_id: string | null } };
 }
 
-const bodySchema = z.object({ slug: z.string().trim().toLowerCase().optional() });
+const bodySchema = z.object({ slug: z.string().trim().toLowerCase().optional(), versionId: z.string().uuid() });
 
 /** Publish the current version (or update an existing link to it). Publishing fields are written with the admin key. */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +35,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!project.current_version_id) return json(409, { error: "Build the app before publishing." });
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
+  if (!parsed.success) return json(400, {error:"Select a saved version before publishing."});
+  if (parsed.data.versionId !== project.current_version_id) return json(409,{error:"The current version changed. Reload and preview it before publishing."});
+  const db = insforgeAdmin().database;
+  const snapshot = await db.from("versions").select("files").eq("id",parsed.data.versionId).eq("project_id",project.id).maybeSingle();
+  if (snapshot.error) return json(503,{error:"Could not read this version. Please retry."});
+  if (!snapshot.data) return json(404,{error:"Version not found."});
+  const checks = checkVersion(parsed.data.versionId,snapshot.data.files as Files);
+  if (checks.errors.length) return json(422,{error:"Fix static issues before publishing: " + checks.errors.map(e => e.message).join("; "),checks});
   const slug = parsed.success ? (parsed.data.slug ?? project.published_slug ?? "") : "";
   const problem = slugProblem(slug);
   if (problem) return json(400, { error: problem, field: "slug" });
@@ -41,13 +51,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .database.from("projects")
     .update({ published_slug: slug, published_version_id: project.current_version_id })
     .eq("id", project.id)
+    .eq("current_version_id", parsed.data.versionId)
     .select("published_slug, published_version_id")
-    .single();
+    .maybeSingle();
   if (error) {
     if (error.code === "23505") return json(409, { error: "That link is taken. Try another.", field: "slug" });
     console.error("[publish]", error);
     return json(500, { error: "Couldn't publish. Try again." });
   }
+  if (!data) return json(409,{error:"The current version changed during publishing. Preview the new version and retry."});
   return json(200, { slug: data.published_slug, versionId: data.published_version_id });
 }
 
