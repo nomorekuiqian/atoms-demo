@@ -21,9 +21,10 @@
 | 代码查看 + 实时预览 | ✅ |
 | 对话式迭代 | ✅ |
 | 一键发布 | ✅ |
-| 版本历史与回滚 | ⏳ |
-| Issue Report + Resolve | ⏳ |
-| Discover + Remix | ⏳ |
+| 版本历史与回滚 | ✅ |
+| Issue Report + Resolve | ✅ |
+| Discover + Remix | ✅ |
+| 主题预设 | ✅ |
 
 ## 在线体验
 

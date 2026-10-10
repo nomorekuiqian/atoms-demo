@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@insforge/sdk/ssr/middleware";
 
-const PROTECTED = ["/dashboard", "/project", "/preview"];
+const PROTECTED = ["/dashboard", "/project", "/preview", "/remix"];
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request });

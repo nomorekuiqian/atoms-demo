@@ -55,7 +55,6 @@ export default async function ProjectPage({
       .from("messages")
       .select("id, role, content, meta, version:versions(number, summary)")
       .eq("project_id", id)
-      .neq("role", "system")
       .order("created_at", { ascending: true })
       .limit(300),
     db.from("versions").select("id, number, summary, created_at").eq("project_id", id).order("number", { ascending: false }).limit(100),

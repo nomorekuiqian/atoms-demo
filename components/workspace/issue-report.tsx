@@ -1,9 +1,22 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function IssueReport({ count, message, onResolve, onConsole }: { count: number; message: string; onResolve: () => void; onConsole: () => void }) {
+/** Floating report of runtime errors in the preview, with one-click Resolve. */
+export function IssueReport({
+  count,
+  message,
+  onResolve,
+  onConsole,
+  onDismiss,
+}: {
+  count: number;
+  message: string;
+  onResolve: () => void;
+  onConsole: () => void;
+  onDismiss?: () => void;
+}) {
   return (
-    <div role="alert" className="flex w-full max-w-[520px] items-center gap-3 rounded-lg border bg-surface p-2 pl-3 shadow-md animate-rise">
+    <div role="alert" className="flex w-full items-center gap-3 rounded-lg border bg-surface p-2 pl-3 shadow-md animate-rise">
       <span className="grid size-8 shrink-0 place-items-center rounded-full bg-danger-soft text-danger">
         <AlertTriangle className="size-4" aria-hidden />
       </span>
@@ -19,6 +32,11 @@ export function IssueReport({ count, message, onResolve, onConsole }: { count: n
       <Button variant="primary" size="sm" onClick={onResolve}>
         Resolve
       </Button>
+      {onDismiss && (
+        <button type="button" onClick={onDismiss} aria-label="Dismiss" className="grid size-7 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-surface-2 hover:text-ink">
+          <X className="size-3.5" />
+        </button>
+      )}
     </div>
   );
 }

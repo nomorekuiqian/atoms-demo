@@ -13,11 +13,16 @@ import { Toaster } from "@/components/ui/toaster";
 import type { AgentEvent } from "@/lib/agents/types";
 import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
 import { readEvents } from "@/lib/sse/readEvents";
-import { useWorkspace, type WorkspaceInit } from "@/lib/store/workspace";
+import { insforgeBrowser } from "@/lib/insforge/client";
+import { toast } from "sonner";
+import { selectIssues, useWorkspace, type VersionRow, type WorkspaceInit } from "@/lib/store/workspace";
+import type { Files } from "@/lib/agents/types";
+import { useShallow } from "zustand/react/shallow";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { CodeView } from "./code-view";
+import { IssueReport } from "./issue-report";
 import { Composer } from "./composer";
 import { Markdown } from "./markdown";
 import { PublishDialog } from "./publish-dialog";
@@ -77,10 +82,66 @@ function useRun() {
   return { run, stop };
 }
 
+/* ───────────────────────────── versions ───────────────────────────── */
+
+function useVersions() {
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  const restore = React.useCallback(async (versionId: string) => {
+    const { projectId, status, restored } = useWorkspace.getState();
+    if (status !== "idle") return toast("Wait for the current build to finish.");
+    setBusy(versionId);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/restore`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ versionId }),
+      });
+      const body = await res.json();
+      if (!res.ok) return toast(body.error ?? "Couldn't restore. Try again.");
+      restored(body.version as VersionRow, body.files as Files, body.messageId);
+      toast(`${body.version.summary} as v${body.version.number}`);
+    } catch {
+      toast("Couldn't reach the server. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }, []);
+
+  const view = React.useCallback(async (versionId: string) => {
+    const { currentVersionId, versions, set } = useWorkspace.getState();
+    if (versionId === currentVersionId) return set({ viewing: null, tab: "preview" });
+    const v = versions.find((x) => x.id === versionId);
+    if (!v) return;
+    const { data, error } = await insforgeBrowser().database.from("versions").select("files").eq("id", versionId).maybeSingle();
+    if (error || !data) return toast("Couldn't load that version.");
+    set({ viewing: { id: v.id, number: v.number, files: data.files as Files }, tab: "preview", console: [], issuesDismissed: true });
+  }, []);
+
+  return { restore, view, busy };
+}
+
 /* ───────────────────────────── chat ───────────────────────────── */
 
-function Chat({ onSend, onStop, onRetry }: { onSend: (p: string) => void; onStop: () => void; onRetry: () => void }) {
+function Chat({
+  onSend,
+  onStop,
+  onRetry,
+  onRestore,
+  restoring,
+}: {
+  onSend: (p: string) => void;
+  onStop: () => void;
+  onRetry: () => void;
+  onRestore: (versionId: string) => void;
+  restoring: string | null;
+}) {
   const messages = useWorkspace((s) => s.messages);
+  const versions = useWorkspace((s) => s.versions);
+  const currentVersionId = useWorkspace((s) => s.currentVersionId);
+  const currentNumber = versions.find((v) => v.id === currentVersionId)?.number;
+  // Revert on a version card = go back to the version before it.
+  const before = (n: number) => versions.find((v) => v.number === n - 1);
   const status = useWorkspace((s) => s.status);
   const runError = useWorkspace((s) => s.runError);
   const [draft, setDraft] = React.useState("");
@@ -104,7 +165,12 @@ function Chat({ onSend, onStop, onRetry }: { onSend: (p: string) => void; onStop
         aria-live="polite"
       >
         {messages.map((m) =>
-          m.role === "user" ? (
+          m.role === "system" ? (
+            <div key={m.id} className="space-y-2">
+              <p className="text-center text-sm text-ink-2">{m.content}</p>
+              {m.version && <VersionCard number={m.version.number} summary={m.version.summary} current={m.version.number === currentNumber} />}
+            </div>
+          ) : m.role === "user" ? (
             <div key={m.id} className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-xl bg-surface-2 px-4 py-2.5 text-md text-ink">
               {m.content}
             </div>
@@ -112,7 +178,16 @@ function Chat({ onSend, onStop, onRetry }: { onSend: (p: string) => void; onStop
             <AgentMessage key={m.id} agent={m.role} status={m.status} activity={m.activity}>
               {m.content.trim() && <Markdown text={m.content} />}
               {m.steps.length > 0 && <WorkingProcess steps={m.steps} />}
-              {m.version && <VersionCard number={m.version.number} summary={m.version.summary} />}
+              {m.version && (
+                <VersionCard
+                  number={m.version.number}
+                  summary={m.version.summary}
+                  current={m.version.number === currentNumber}
+                  restoreLabel="Revert"
+                  onRestore={before(m.version.number) && status === "idle" ? () => onRestore(before(m.version!.number)!.id) : undefined}
+                  restoring={restoring === before(m.version.number)?.id}
+                />
+              )}
             </AgentMessage>
           ),
         )}
@@ -168,7 +243,9 @@ function ToolButton({ label, active, onClick, children }: { label: string; activ
 
 function Preview() {
   const projectId = useWorkspace((s) => s.projectId);
-  const files = useWorkspace((s) => s.files);
+  const currentFiles = useWorkspace((s) => s.files);
+  const viewing = useWorkspace((s) => s.viewing);
+  const files = viewing?.files ?? currentFiles;
   const nonce = useWorkspace((s) => s.previewNonce);
   const device = useWorkspace((s) => s.device);
   const status = useWorkspace((s) => s.status);
@@ -256,7 +333,18 @@ function ConsoleDrawer() {
   );
 }
 
-function AppPanel() {
+function AppPanel({
+  onResolve,
+  onView,
+  onRestore,
+  restoring,
+}: {
+  onResolve: (errors: string[]) => void;
+  onView: (versionId: string) => void;
+  onRestore: (versionId: string) => void;
+  restoring: string | null;
+}) {
+  const viewing = useWorkspace((s) => s.viewing);
   const tab = useWorkspace((s) => s.tab);
   const device = useWorkspace((s) => s.device);
   const consoleOpen = useWorkspace((s) => s.consoleOpen);
@@ -269,7 +357,10 @@ function AppPanel() {
   const currentVersionId = useWorkspace((s) => s.currentVersionId);
   const publishedVersionId = useWorkspace((s) => s.publishedVersionId);
   const set = useWorkspace((s) => s.set);
-  const codeFiles = React.useMemo(() => ({ ...files, ...draft }), [files, draft]);
+  const codeFiles = React.useMemo(() => viewing?.files ?? { ...files, ...draft }, [files, draft, viewing]);
+  const issues = useWorkspace(useShallow(selectIssues));
+  const issuesDismissed = useWorkspace((s) => s.issuesDismissed);
+  const idle = useWorkspace((s) => s.status === "idle");
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-sm">
@@ -291,7 +382,7 @@ function AppPanel() {
                 <Smartphone />
               </ToolButton>
             </span>
-            <ToolButton label="Refresh" onClick={() => set({ previewNonce: useWorkspace.getState().previewNonce + 1, console: [] })}>
+            <ToolButton label="Refresh" onClick={() => set({ previewNonce: useWorkspace.getState().previewNonce + 1, console: [], issuesDismissed: false })}>
               <RotateCw />
             </ToolButton>
             <ToolButton label="Open in new tab" onClick={() => window.open(`/preview/${useWorkspace.getState().projectId}`, "_blank", "noopener")}>
@@ -307,10 +398,34 @@ function AppPanel() {
           </div>
         )}
       </div>
+      {viewing && tab !== "versions" && (
+        <div className="flex shrink-0 items-center gap-2 border-b bg-accent-soft px-3 py-2 text-base">
+          <span className="flex-1 text-accent-ink">Viewing v{viewing.number}. Your current version is unchanged.</span>
+          <Button size="sm" variant="ghost" onClick={() => set({ viewing: null, previewNonce: useWorkspace.getState().previewNonce + 1 })}>
+            Back to current
+          </Button>
+          <Button size="sm" variant="primary" loading={restoring === viewing.id} onClick={() => onRestore(viewing.id)}>
+            Restore v{viewing.number}
+          </Button>
+        </div>
+      )}
       <div className="relative min-h-0 flex-1">
         <div className={cn("h-full", tab !== "preview" && "hidden")}>
           <Preview />
         </div>
+        {tab === "preview" && idle && !viewing && issues.length > 0 && !issuesDismissed && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4">
+            <div className="pointer-events-auto w-full max-w-[520px]">
+              <IssueReport
+                count={issues.length}
+                message={issues[0].split("\n")[0]}
+                onResolve={() => onResolve(issues)}
+                onConsole={() => set({ consoleOpen: true })}
+                onDismiss={() => set({ issuesDismissed: true })}
+              />
+            </div>
+          </div>
+        )}
         {tab === "code" && <CodeView files={codeFiles} active={activeFile} writing={writing} onSelect={(p) => set({ activeFile: p })} />}
         {tab === "versions" &&
           (versions.length ? (
@@ -318,6 +433,9 @@ function AppPanel() {
               <VersionList
                 versions={versions.map((v) => ({ id: v.id, number: v.number, summary: v.summary, when: timeAgo(v.created_at), published: v.id === publishedVersionId }))}
                 currentId={currentVersionId ?? ""}
+                viewingId={viewing?.id}
+                onView={onView}
+                onRestore={idle ? onRestore : undefined}
               />
             </div>
           ) : (
@@ -335,6 +453,7 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
   const params = useSearchParams();
   const [ready, setReady] = React.useState(false);
   const { run, stop } = useRun();
+  const { restore, view, busy } = useVersions();
   const title = useWorkspace((s) => s.title);
   const pane = useWorkspace((s) => s.pane);
   const set = useWorkspace((s) => s.set);
@@ -390,10 +509,17 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
               onSend={(prompt) => void run({ prompt })}
               onStop={stop}
               onRetry={() => void run({ prompt: null })}
+              onRestore={(id) => void restore(id)}
+              restoring={busy}
             />
           </div>
           <div className={cn("min-h-0", pane === "app" ? "block" : "hidden md:block")}>
-            <AppPanel />
+            <AppPanel
+              onResolve={(errors) => void run({ prompt: null, mode: "fix", errors })}
+              onView={(id) => void view(id)}
+              onRestore={(id) => void restore(id)}
+              restoring={busy}
+            />
           </div>
         </div>
       </div>

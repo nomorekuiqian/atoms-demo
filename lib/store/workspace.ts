@@ -9,7 +9,7 @@ export type MessageStatus = "thinking" | "working" | "done" | "stopped" | "faile
 
 export type UIMessage = {
   id: string;
-  role: "user" | AgentId;
+  role: "user" | "system" | AgentId;
   content: string;
   status: MessageStatus;
   activity?: string;
@@ -46,6 +46,10 @@ type State = WorkspaceInit & {
   consoleOpen: boolean;
   runError: { message: string; retryable: boolean } | null;
   lastPrompt: string | null;
+  /** Issue Report dismissed for the current preview load. */
+  issuesDismissed: boolean;
+  /** A past version shown read-only in Preview/Code (Versions tab). */
+  viewing: { id: string; number: number; files: Files } | null;
 };
 
 type Actions = {
@@ -55,6 +59,7 @@ type Actions = {
   apply: (e: AgentEvent) => void;
   finishRun: (opts?: { stopped?: boolean; error?: string }) => void;
   log: (entry: Omit<ConsoleEntry, "id">) => void;
+  restored: (v: VersionRow, files: Files, messageId: string | null) => void;
 };
 
 let consoleId = 0;
@@ -82,6 +87,8 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
   consoleOpen: false,
   runError: null,
   lastPrompt: null,
+  issuesDismissed: false,
+  viewing: null,
 
   init: (data) =>
     set({
@@ -94,6 +101,7 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
       activeFile: Object.keys(data.files)[0] ?? null,
       console: [],
       runError: null,
+      viewing: null,
     }),
 
   set: (patch) => set(patch),
@@ -166,12 +174,14 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
         set({
           files,
           draft: {},
+          viewing: null,
           title: e.title ?? s.title,
           currentVersionId: e.versionId,
           versions: [{ id: e.versionId, number: e.number, summary: e.summary, created_at: new Date().toISOString() }, ...s.versions],
           messages: updateLast("alex", (m) => ({ ...m, version: { number: e.number, summary: e.summary } })),
           previewNonce: s.previewNonce + 1,
           console: [],
+          issuesDismissed: false,
           tab: s.tab === "code" ? "code" : "preview",
           pane: "app",
         });
@@ -205,9 +215,40 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
     })),
 
   log: (entry) => set((s) => ({ console: [...s.console.slice(-199), { ...entry, id: ++consoleId }] })),
+
+  restored: (v, files, messageId) =>
+    set((s) => ({
+      files,
+      currentVersionId: v.id,
+      versions: [v, ...s.versions],
+      viewing: null,
+      previewNonce: s.previewNonce + 1,
+      console: [],
+      issuesDismissed: false,
+      tab: "preview",
+      messages: [
+        ...s.messages,
+        { id: messageId ?? tempId(), role: "system", content: v.summary, status: "done", steps: [], version: { number: v.number, summary: v.summary } },
+      ],
+    })),
 }));
 
 /** The orchestrator trims one leading/trailing newline from each file; mirror it client-side. */
 function trimDraft(draft: Files): Files {
   return Object.fromEntries(Object.entries(draft).map(([p, c]) => [p, c.replace(/^\n/, "").replace(/\n$/, "")]));
+}
+
+/** Distinct runtime errors from the current preview load, most recent first (max 5). */
+export function selectIssues(s: { console: ConsoleEntry[] }): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (let i = s.console.length - 1; i >= 0 && out.length < 5; i--) {
+    const e = s.console[i];
+    if (e.level !== "error") continue;
+    const key = e.text.split("\n")[0];
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(e.text.slice(0, 1500));
+  }
+  return out;
 }

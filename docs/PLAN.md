@@ -444,6 +444,6 @@ create policy own_messages on messages for all
 | M2 | 1.5h | ≈1h | ≈$0.04（Haiku 录 5 个 fixture） | 47 单测；mock/真实冒烟；中止不写版本；429；线上冒烟 | Mike 改为流式 header；fixture 是按 agent 的原始输出（JSON），不是事件流 |
 | M3 | 1.5h | ≈1h | $0 | T3（mock）、T4、Console 报错、Stop、刷新恢复、375 Chat/App | sandbox 下 localStorage 不可用 → 注入 shim 并由父页按项目持久化 |
 | M4 | 0.75h | ≈0.6h | $0 | scripts/check-publish.mjs 13/13；匿名访问 /p/{slug}、父页读不到 iframe（opaque origin）、更新到最新、下线 404 | /p/{slug} 改为可信外壳 + 沙箱 iframe（同 workspace 的 storage 桥），不再用 CSP sandbox 响应头；G3：P0 完成，用时约 5.7h |
-| M5 | 1h | | | | |
+| M5 | 1h | ≈0.7h | $0 | E2 Issue Report→Resolve→新版本；E1 查看历史版本/Restore/Revert；E3 Discover（实时缩略图）+ Remix；E6 5 个主题预设 | E6 只放在首页输入框（迭代时直接用文字描述即可）；Resolve 的真实修复效果留到 M7 用真实模型验证 |
 | M6 | 0.5h | | | | |
 | M7 | 0.5h | | | | G4： |

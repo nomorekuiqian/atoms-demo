@@ -3,7 +3,9 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Composer } from "@/components/workspace/composer";
+import { ThemePicker } from "@/components/app/theme-picker";
 import { createProject } from "@/lib/projects/actions";
+import { withTheme } from "@/lib/themes";
 
 const EXAMPLES: [string, string][] = [
   ["Pomodoro timer", "Build a pomodoro timer with a count of sessions finished today"],
@@ -17,6 +19,7 @@ export function HomeComposer({ signedIn }: { signedIn: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const [draft, setDraft] = React.useState("");
+  const [theme, setTheme] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const [error, setError] = React.useState<string>();
   const [pending, startTransition] = React.useTransition();
@@ -59,7 +62,8 @@ export function HomeComposer({ signedIn }: { signedIn: boolean }) {
         size="lg"
         value={draft}
         onChange={setDraft}
-        onSubmit={() => submit(draft)}
+        onSubmit={() => submit(withTheme(draft, theme))}
+        footer={<ThemePicker value={theme} onChange={setTheme} />}
         busy={pending}
         textareaRef={inputRef}
         className="shadow-md"

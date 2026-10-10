@@ -10,6 +10,9 @@ export function SiteHeader({ email, children }: { email?: string | null; childre
         <Logo />
       </Link>
       <div className="ml-auto flex items-center gap-2">
+        <Button asChild variant="ghost" className="hidden sm:inline-flex">
+          <Link href="/discover">Discover</Link>
+        </Button>
         {children}
         {email ? (
           <UserMenu email={email} />
