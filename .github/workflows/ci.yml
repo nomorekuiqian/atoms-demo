@@ -12,7 +12,6 @@ jobs:
       NEXT_PUBLIC_INSFORGE_URL: https://example.insforge.app
       NEXT_PUBLIC_INSFORGE_ANON_KEY: ci-placeholder
       INSFORGE_API_KEY: ci-placeholder
-      LLM_MOCK: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -9,11 +9,8 @@ const serverEnvSchema = z.object({
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_CHAT_MODEL: z.string().default("anthropic/claude-haiku-5.5"),
   OPENROUTER_FAST_MODEL: z.string().default("anthropic/claude-haiku-5.5"),
-  LLM_MOCK: z.enum(["0", "1"]).default("0"),
   DEMO_EMAIL: z.string().email().optional(),
   DEMO_PASSWORD: z.string().optional(),
-  DAILY_LIMIT: z.coerce.number().int().positive().default(30),
-  DAILY_LIMIT_DEMO: z.coerce.number().int().positive().default(10),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

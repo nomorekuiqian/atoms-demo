@@ -4,16 +4,13 @@ import { createHash, randomUUID } from "node:crypto";
 import { insforgeAdmin } from "@/lib/insforge/admin";
 import type { RunReceipt } from "@/lib/agents/persist";
 import { z } from "zod";
-import { FIXTURES } from "@/fixtures";
 import { isRunConflict } from "@/lib/agents/conflict";
 import { mergeFiles } from "@/lib/agents/merge";
 import { runPipeline } from "@/lib/agents/orchestrator";
 import { loadHistory, loadProjectState, persistRun } from "@/lib/agents/persist";
 import type { AgentEvent, ChatTurn, PipelineResult } from "@/lib/agents/types";
 import { serverEnv } from "@/lib/env";
-import { pickFixture } from "@/lib/llm/mock";
 import { createGatewayModels, type AgentModels } from "@/lib/llm/models";
-import { createFixtureModels } from "@/lib/llm/fixture-models";
 import type { Usage } from "@/lib/llm/types";
 import { insforgeServer } from "@/lib/insforge/server";
 
@@ -61,10 +58,9 @@ async function generate(request: Request) {
   const state = await loadProjectState(db, body.projectId);
   if (!state) return json(404, "Project not found.");
 
-  const mock = env.LLM_MOCK === "1";
   const admin = insforgeAdmin().database;
   const fingerprint = createHash("sha256").update(JSON.stringify({ projectId: body.projectId, expectedVersionId: body.expectedVersionId, prompt: body.prompt ?? null, mode: body.mode, errors: body.errors ?? [], ...(body.references.length ? {references:body.references} : {}), ...(body.element?{element:body.element}:{}) })).digest("hex");
-  // Replays bypass quota and history reads, but never ownership or payload identity.
+  // Replays bypass history reads, but never ownership or payload identity.
   const { data: prior, error: priorError } = await admin.from("generation_requests").select("fingerprint, result, status").eq("id",body.requestId).eq("user_id",user.id).maybeSingle();
   if (priorError) throw new Error(priorError.message);
   if (prior && prior.fingerprint !== fingerprint) return json(409,"This request identifier belongs to different input.");
@@ -98,24 +94,19 @@ async function generate(request: Request) {
     .slice(-6)
     .map((m) => ({ role: m.role as ChatTurn["role"], content: m.content }));
 
-  let modelFor: AgentModels;
   const usage: Usage[] = [];
-  if (mock) {
-    if (FIXTURES.length === 0) return json(503, "No mock fixtures recorded yet.");
-    modelFor = createFixtureModels(pickFixture(FIXTURES, body.mode === "fix" ? "fix-runtime-error" : prompt, Object.keys(state.files).length > 0), { hasApp: Object.keys(state.files).length > 0, fix: body.mode === "fix" });
-  } else {
-    if (!env.OPENROUTER_API_KEY) return json(503, "The AI service isn't configured.");
-    modelFor = createGatewayModels({ baseURL: env.OPENROUTER_BASE_URL, apiKey: env.OPENROUTER_API_KEY });
-  }
+  // Every run calls the configured real model; there is no replay mode.
+  if (!env.OPENROUTER_API_KEY) return json(503, "The AI service isn't configured.");
+  const modelFor: AgentModels = createGatewayModels({ baseURL: env.OPENROUTER_BASE_URL, apiKey: env.OPENROUTER_API_KEY });
   if (body.record) return json(400, "Legacy text recording is unavailable for tool-loop runs. Use the ReAct smoke report instead.");
 
   const lease = randomUUID();
-  const { data: claim, error: claimError } = await admin.rpc("claim_generation_v2", {
-    p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,
-    p_limit: user.email === env.DEMO_EMAIL ? env.DAILY_LIMIT_DEMO : env.DAILY_LIMIT, p_mock:mock, p_concurrency:2,
+  // No daily allowance; at most two builds per account run at once.
+  const { data: claim, error: claimError } = await admin.rpc("claim_generation_v3", {
+    p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,p_concurrency:2,
   });
   if (claimError) return json(isRunConflict(claimError) ? 409 : 503, isRunConflict(claimError) ? "This request is running or the project changed. Retry shortly, or reload the project." : "Could not start this request. Please retry.");
-  if ((claim as {quota?:boolean;busy?:boolean})?.quota || (claim as {busy?:boolean})?.busy) return json(429,(claim as {message:string}).message);
+  if ((claim as {busy?:boolean})?.busy) return json(429,(claim as {message:string}).message);
   if ((claim as {conflict?:string})?.conflict) return json(409, (claim as {conflict:string}).conflict);
   if ((claim as {cached?:RunReceipt})?.cached) return replay((claim as {cached:RunReceipt}).cached);
 
@@ -169,7 +160,7 @@ async function generate(request: Request) {
           merged: files,
           result,
           userId: user.id,
-          mock, separateUsage:true,
+          mock: false, separateUsage:true,
         });
         const version = receipt.version;
         if (version && receipt.files) {
@@ -188,7 +179,7 @@ async function generate(request: Request) {
         try {
           const { error: usageError } = await admin.rpc("settle_generation_attempt", {
             p_lease:lease, p_user:user.id,
-            p_usage: mock || !usage.length ? null : {model:[...new Set(usage.map(u=>u.model))].join(","),input:usage.reduce((n,u)=>n+u.input,0),output:usage.reduce((n,u)=>n+u.output,0)},
+            p_usage: !usage.length ? null : {model:[...new Set(usage.map(u=>u.model))].join(","),input:usage.reduce((n,u)=>n+u.input,0),output:usage.reduce((n,u)=>n+u.output,0)},
           });
           if (usageError) console.error("[generation usage]",usageError.message);
         } catch (error) {

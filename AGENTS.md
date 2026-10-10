@@ -11,8 +11,8 @@ Atoms-style AI app builder: a coordinating Mike agent with independent Emma/Bob/
 - Next.js 15 App Router + TypeScript, Tailwind CSS **3.4**, shadcn/ui, Zustand
 - InsForge for DB / Auth / RLS / Model Gateway / hosting (Sites)
   - Browser & SSR: `@insforge/sdk`, `@insforge/sdk/ssr`; privileged server code: `createAdminClient({ apiKey })`
-  - Agent runtime: Vercel AI SDK `ToolLoopAgent` with `@ai-sdk/openai-compatible` pointed at the InsForge Model Gateway (OpenAI-compatible, routes to OpenRouter) via `OPENROUTER_BASE_URL` + `OPENROUTER_API_KEY`, server-side only; switching to a self-owned OpenRouter key only changes those two env vars
-  - Dev uses `LLM_MOCK=1` (replays `fixtures/*.json` as deterministic SDK tool scripts) to save AI credit; see docs/PLAN.md
+  - Agent runtime: Vercel AI SDK `ToolLoopAgent` with `@ai-sdk/openai-compatible` pointed at OpenRouter via `OPENROUTER_BASE_URL` + `OPENROUTER_API_KEY`, server-side only
+  - The app always calls the real model, locally and in production; there is no mock mode and no daily generation limit. Scripted models (`lib/llm/scripted-model.ts`, `fixtures/`) are only for unit tests and `scripts/smoke-react.mjs --mock`
 - Vitest for unit tests
 
 ## Rules
