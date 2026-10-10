@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { insforgeAdmin } from "@/lib/insforge/admin";
 import { insforgeServer } from "@/lib/insforge/server";
 import { titleFromPrompt } from "./title";
 
@@ -14,21 +15,19 @@ export type ActionResult = { error?: string } | undefined;
 export async function createProject(prompt: string): Promise<ActionResult> {
   const parsed = promptSchema.safeParse(prompt);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const db = (await insforgeServer()).database;
+  const client = await insforgeServer();
+  const { data: auth } = await client.auth.getCurrentUser();
+  if (!auth?.user) return { error: "Sign in to create a project." };
 
-  const { data: project, error } = await db
-    .from("projects")
-    .insert([{ title: titleFromPrompt(parsed.data) }])
-    .select("id")
-    .single();
-  if (error || !project) return { error: "Couldn't create the project. Try again." };
+  // One transaction: a failed prompt write must not leave an empty project.
+  const { data: projectId, error } = await insforgeAdmin().database.rpc("create_project_with_prompt", {
+    p_user: auth.user.id,
+    p_title: titleFromPrompt(parsed.data),
+    p_prompt: parsed.data,
+  });
+  if (error || typeof projectId !== "string") return { error: "Couldn't create the project. Try again." };
 
-  const { error: msgError } = await db
-    .from("messages")
-    .insert([{ project_id: project.id, role: "user", content: parsed.data }]);
-  if (msgError) return { error: "Couldn't save your prompt. Try again." };
-
-  redirect(`/project/${project.id}?autostart=1`);
+  redirect(`/project/${projectId}?autostart=1`);
 }
 
 export async function renameProject(id: string, title: string): Promise<ActionResult> {

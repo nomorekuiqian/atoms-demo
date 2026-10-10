@@ -37,6 +37,7 @@ describe("independent SDK ReAct loops", () => {
     expect(result.acceptance?.items).toHaveLength(3);
     expect(result.written["app.js"]).toContain("localStorage");
     expect(events.some(e => e.type === "tool_activity" && e.agent === "emma")).toBe(true);
+    expect(result.agents.flatMap(a => a.trace ?? []).every(t => t.status !== "running")).toBe(true);
   });
 
   it("observes a missing resource, repairs it, and rechecks in Alex's same conversation", async () => {
@@ -64,9 +65,40 @@ describe("independent SDK ReAct loops", () => {
     for (const role of ["emma", "bob"]) expect(result.agents.find(a => a.agent === role)?.trace?.[0].status).toBe("failed");
   });
 
+  it("tells an agent to move on when it re-reads an unchanged file", async () => {
+    const read = t("readFile", { path: "index.html" });
+    const { result } = await run(scripts({ mike, alex: [read, read, write("<p>new</p>"), read, t("checkApp"), finish] }), existing);
+    expect(result.ok).toBe(true);
+    expect(result.agents[1].trace?.filter(t => t.tool === "readFile").map(t => t.status)).toEqual(["done", "failed", "done"]);
+  });
+
   it("rejects stale checks after an additional write", async () => {
     const { result } = await run(scripts({ mike, alex: [write("<p>new</p>"), t("checkApp"), write('<script src="missing.js"></script>'), finish] }), existing);
     expect(result.ok).toBe(false); expect(result.written).toEqual({});
+  });
+
+  it("streams file content while the tool input is still arriving", async () => {
+    const content = "<main>" + "x".repeat(400) + "</main>";
+    const { result, events } = await run(scripts({ mike, alex: [write(content), t("checkApp"), finish] }), existing);
+    expect(result.ok).toBe(true);
+    const deltas = events.flatMap((e, i) => e.type === "file_delta" ? [i] : []);
+    const executed = events.findIndex(e => e.type === "tool_activity" && e.tool === "writeFile" && e.status === "done");
+    const shown = events.findIndex(e => e.type === "tool_activity" && e.tool === "writeFile");
+    expect(shown).toBeLessThan(deltas[0]);
+    expect(deltas.length).toBeGreaterThan(3);
+    expect(deltas[0]).toBeLessThan(executed);
+    expect(events.filter(e => e.type === "file_start")).toHaveLength(1);
+    expect(events.flatMap(e => e.type === "file_delta" ? [e.delta] : []).join("")).toBe(content);
+  });
+
+  it("withdraws a streamed draft whose tool input fails validation", async () => {
+    const bad = t("writeFile", { path: "index.html", content: "<p>draft</p>", extra: true });
+    const { events } = await run(scripts({ mike, alex: [bad, write("<p>new</p>"), t("checkApp"), finish] }), existing);
+    const abort = events.find(e => e.type === "file_abort");
+    expect(abort).toEqual({ type: "file_abort", path: "index.html", content: "<p>old</p>" });
+    const rows = events.filter(e => e.type === "tool_activity" && e.tool === "writeFile");
+    expect(rows.find(e => e.type === "tool_activity" && e.status === "failed")).toBeTruthy();
+    expect(events.findIndex(e => e.type === "file_abort")).toBeLessThan(events.findLastIndex(e => e.type === "file_start"));
   });
 
   it("blocks traversal and preserves the saved source on failed completion", async () => {

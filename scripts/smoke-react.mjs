@@ -27,18 +27,27 @@ for (const task of tasks) {
   const started = Date.now();
   const gen = runPipeline(input, { modelFor, models });
   let result;
+  // Latency of user-visible feedback: first model output, first file content, and
+  // how many file deltas arrived before that write was executed.
+  const timing = { firstModelOutputMs: null, firstTextMs: null, firstFileDeltaMs: null, firstWriteExecMs: null, fileDeltas: 0, deltasBeforeFirstWrite: 0, fileAborts: 0 };
   for (;;) {
     const next = await gen.next();
     if (next.done) { result = next.value; break; }
-    const e = next.value;
+    const e = next.value, at = Date.now() - started;
+    if ((e.type === 'text_delta' || e.type === 'tool_activity' || e.type === 'file_delta') && timing.firstModelOutputMs === null) timing.firstModelOutputMs = at;
+    if (e.type === 'text_delta' && timing.firstTextMs === null) timing.firstTextMs = at;
+    if (e.type === 'file_delta') { timing.fileDeltas++; if (timing.firstWriteExecMs === null) timing.deltasBeforeFirstWrite++; timing.firstFileDeltaMs ??= at; }
+    if (e.type === 'tool_activity' && e.tool === 'writeFile' && e.status !== 'running' && timing.firstWriteExecMs === null) timing.firstWriteExecMs = at;
+    if (e.type === 'file_abort') timing.fileAborts++;
     if (e.type === 'agent_start' || e.type === 'agent_end') console.log(task.name, e.type, e.agent, e.status || '');
     if (e.type === 'tool_activity' && e.status !== 'running') console.log(task.name, e.agent, e.tool, e.status, 'step', e.step, e.detail || '');
     if (e.type === 'error') console.log(task.name, e.message);
   }
   const nextFiles = result.ok ? { ...files, ...result.written } : files;
-  report.cases.push({ name: task.name, elapsedMs: Date.now() - started, result, static: checkFiles(nextFiles), files: nextFiles, browser: 'not_run' });
+  report.cases.push({ name: task.name, elapsedMs: Date.now() - started, timing, result, static: checkFiles(nextFiles), files: nextFiles, browser: 'not_run' });
   await writeFile(`.insforge/react-smoke-${mock ? 'mock' : 'real'}.json`, JSON.stringify(report, null, 2), { mode: 0o600 });
   if (!result.ok) { process.exitCode = 1; break; }
   files = nextFiles; acceptance = result.acceptance;
+  console.log(task.name, 'timing', JSON.stringify(timing));
   console.log(task.name, 'COMPLETE', Date.now() - started, 'ms', result.usage.reduce((n,u) => n+u.input+u.output,0), 'tokens');
 }

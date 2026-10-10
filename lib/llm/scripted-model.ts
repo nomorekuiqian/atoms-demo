@@ -19,7 +19,14 @@ export function scriptedModel(script: ModelScript): LanguageModelV3 {
         controller.enqueue({ type: "stream-start", warnings: [] });
         actions.forEach((action, index) => {
           const id = `${step}-${index}`;
-          if ("tool" in action) controller.enqueue({ type: "tool-call", toolCallId: id, toolName: action.tool, input: JSON.stringify(action.input) });
+          if ("tool" in action) {
+            // Like real providers, stream the tool input before the completed call.
+            const input = JSON.stringify(action.input);
+            controller.enqueue({ type: "tool-input-start", id, toolName: action.tool });
+            for (let i = 0; i < input.length; i += 64) controller.enqueue({ type: "tool-input-delta", id, delta: input.slice(i, i + 64) });
+            controller.enqueue({ type: "tool-input-end", id });
+            controller.enqueue({ type: "tool-call", toolCallId: id, toolName: action.tool, input });
+          }
           else {
             controller.enqueue({ type: "text-start", id });
             controller.enqueue({ type: "text-delta", id, delta: action.text });

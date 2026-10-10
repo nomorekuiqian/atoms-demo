@@ -16,10 +16,30 @@ export function acceptanceHarness(identity: {
     el.getClientRects().length > 0 &&
     getComputedStyle(el).visibility !== "hidden" &&
     getComputedStyle(el).display !== "none";
-  const text = (el: Element) =>
-    String(el.textContent ?? "")
-      .replace(/\s+/g, " ")
-      .trim();
+  // Only text a user can see: textContent would also count display:none,
+  // visibility:hidden, transparent and screen-reader-only descendants.
+  const shownText = (el: Element): string => {
+    if (/^(SCRIPT|STYLE|TEMPLATE|NOSCRIPT)$/.test(el.tagName)) return "";
+    const style = getComputedStyle(el);
+    if (
+      el.hasAttribute("hidden") ||
+      style.display === "none" ||
+      Number(style.opacity) === 0 ||
+      (style.position === "absolute" &&
+        parseFloat(style.width) <= 1 &&
+        parseFloat(style.height) <= 1)
+    )
+      return "";
+    // visibility is inherited but a child may set it back to visible.
+    const own = style.visibility === "visible";
+    let out = "";
+    for (const node of Array.from(el.childNodes)) {
+      if (node.nodeType === 3) out += own ? (node.nodeValue ?? "") : "";
+      else if (node.nodeType === 1) out += shownText(node as Element);
+    }
+    return out;
+  };
+  const text = (el: Element) => shownText(el).replace(/\s+/g, " ").trim();
   let busy = false;
   const seen = new Set<string>();
   window.addEventListener("message", async (event: MessageEvent) => {

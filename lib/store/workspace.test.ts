@@ -25,3 +25,18 @@ it("updates coordinator and specialist tool rows independently", () => {
   expect(messages[0].steps[0]).toMatchObject({id:"delegate",status:"done"});
   expect(messages[1].steps[0]).toMatchObject({id:"check",status:"failed"});
 });
+
+it("withdraws a rejected streamed draft back to the candidate content", () => {
+  const s = useWorkspace.getState();
+  s.init({projectId:"p",title:"x",messages:[],files:{"index.html":"saved"},versions:[],currentVersionId:null,publishedVersionId:null,publishedSlug:null});
+  s.startRun("edit");
+  s.apply({type:"agent_start",agent:"alex",activity:"Building"});
+  s.apply({type:"file_start",path:"index.html"});
+  s.apply({type:"file_delta",path:"index.html",delta:"<p>half"});
+  s.apply({type:"file_start",path:"new.js"});
+  s.apply({type:"file_abort",path:"index.html",content:"candidate"});
+  s.apply({type:"file_abort",path:"new.js",content:null});
+  const state = useWorkspace.getState();
+  expect(state.draft).toEqual({"index.html":"candidate"});
+  expect(state.messages[1].steps.map(st => st.kind === "tool" ? st.status : st.kind)).toEqual(["failed","failed"]);
+});

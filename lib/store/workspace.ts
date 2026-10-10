@@ -182,6 +182,20 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
       case "file_delta":
         set({ draft: { ...s.draft, [e.path]: (s.draft[e.path] ?? "") + e.delta } });
         break;
+      case "file_abort": {
+        const draft = { ...s.draft };
+        if (e.content === null) delete draft[e.path];
+        else draft[e.path] = e.content;
+        set({
+          draft,
+          writing: s.writing === e.path ? null : s.writing,
+          messages: updateLast("alex", (m) => ({
+            ...m,
+            steps: m.steps.map((st) => (st.kind === "tool" && st.path === e.path && st.status === "running" ? { ...st, status: "failed" } : st)),
+          })),
+        });
+        break;
+      }
       case "file_end":
         set({
           writing: null,

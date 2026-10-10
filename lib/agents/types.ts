@@ -16,6 +16,8 @@ export type AgentEvent =
   | { type: "file_start"; path: string }
   | { type: "file_delta"; path: string; delta: string }
   | { type: "file_end"; path: string }
+  /** A streamed draft failed validation; restore the candidate content (null: not in the candidate). */
+  | { type: "file_abort"; path: string; content: string | null }
   | { type: "agent_end"; agent: AgentId; status: AgentRunStatus }
   | { type: "version_created"; versionId: string; number: number; summary: string; title?: string; files: Files }
   | { type: "error"; message: string; retryable: boolean }
