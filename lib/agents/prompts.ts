@@ -109,7 +109,7 @@ export function alexUser(opts: {
   if (opts.requirements) parts.push(`Requirements from Emma:\n${opts.requirements}`);
   if (opts.plan) parts.push(`File plan from Bob:\n${opts.plan}`);
   if (opts.mode === "fix" && opts.errors?.length) {
-    parts.push(`The app throws these runtime errors in the preview. Fix their cause:\n${opts.errors.map((e) => `- ${e}`).join("\n")}`);
+    parts.push(`The app throws these runtime errors in the preview. Fix their cause while preserving existing controls, labels, and intended functionality. Do not remove a button or disable its interaction just to suppress an error; repair its handler:\n${opts.errors.map((e) => `- ${e}`).join("\n")}`);
   }
   parts.push(filesBlock(opts.files));
   return parts.join("\n\n");

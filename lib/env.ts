@@ -7,7 +7,7 @@ const serverEnvSchema = z.object({
   INSFORGE_API_KEY: z.string().min(1),
   OPENROUTER_BASE_URL: z.string().url().default("https://openrouter.ai/api/v1"),
   OPENROUTER_API_KEY: z.string().optional(),
-  OPENROUTER_CHAT_MODEL: z.string().default("anthropic/claude-sonnet-5.5"),
+  OPENROUTER_CHAT_MODEL: z.string().default("anthropic/claude-haiku-5.5"),
   OPENROUTER_FAST_MODEL: z.string().default("anthropic/claude-haiku-5.5"),
   LLM_MOCK: z.enum(["0", "1"]).default("0"),
   DEMO_EMAIL: z.string().email().optional(),
