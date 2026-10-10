@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { FileReference } from "@/lib/context/references";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ExternalLink, Monitor, RotateCw, Smartphone, SquareTerminal, X } from "lucide-react";
@@ -46,22 +47,23 @@ function readAppStorage(projectId: string): Record<string, string> {
 function useRun() {
   const controller = React.useRef<AbortController | null>(null);
   const store = useWorkspace;
-  type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean; requestId?: string; expectedVersionId?: string | null };
+  type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean; requestId?: string; expectedVersionId?: string | null; references?:FileReference[] };
   const lastRun = React.useRef<RunOptions | null>(null);
 
   const run = React.useCallback(async (opts: RunOptions) => {
     const s = store.getState();
     if (s.status !== "idle") return;
-    opts = { ...opts, requestId: opts.requestId ?? crypto.randomUUID(), expectedVersionId: opts.expectedVersionId === undefined ? s.currentVersionId : opts.expectedVersionId };
+    opts = { ...opts, references: opts.references ?? (opts.mode==="fix"?[]:s.fileReferences), requestId: opts.requestId ?? crypto.randomUUID(), expectedVersionId: opts.expectedVersionId === undefined ? s.currentVersionId : opts.expectedVersionId };
     lastRun.current = opts;
-    s.startRun(opts.retry ? null : opts.prompt);
+    s.startRun(opts.retry ? null : opts.prompt, opts.references);
+    if(!opts.retry && opts.mode!=="fix")s.set({fileReferences:[]});
     const ctrl = new AbortController();
     controller.current = ctrl;
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry, requestId: opts.requestId, expectedVersionId: opts.expectedVersionId }),
+        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry, requestId: opts.requestId, expectedVersionId: opts.expectedVersionId, references: opts.references }),
         signal: ctrl.signal,
       });
       if (!res.ok || !res.body) {
@@ -164,6 +166,7 @@ function Chat({
   const before = (n: number) => versions.find((v) => v.number === n - 1);
   const status = useWorkspace((s) => s.status);
   const runError = useWorkspace((s) => s.runError);
+  const fileReferences=useWorkspace(s=>s.fileReferences);
   const [draft, setDraft] = React.useState("");
   const scroller = React.useRef<HTMLDivElement>(null);
   const pinned = React.useRef(true);
@@ -193,6 +196,7 @@ function Chat({
           ) : m.role === "user" ? (
             <div key={m.id} className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-xl bg-surface-2 px-4 py-2.5 text-md text-ink">
               {m.content}
+              {m.references?.length ? <div className="mt-2 flex flex-wrap gap-1">{m.references.map(ref=><span key={ref.path} className="rounded border px-2 py-0.5 font-mono text-xs" title={ref.versionId}>{ref.path} · {versions.find(v=>v.id===ref.versionId)?`v${versions.find(v=>v.id===ref.versionId)!.number}`:"saved version"}</span>)}</div>:null}
             </div>
           ) : (
             <AgentMessage key={m.id} agent={m.role} status={m.status} activity={m.activity}>
@@ -223,6 +227,7 @@ function Chat({
         )}
       </div>
       <div className="px-2 pb-2">
+        {fileReferences.length>0 && <div aria-label="Selected file references" className="mb-2 flex flex-wrap gap-1">{fileReferences.map(ref=><button key={ref.path} type="button" aria-label={`Remove ${ref.path} reference`} className="inline-flex max-w-full items-center gap-1 rounded-md border bg-surface px-2 py-1 text-sm text-ink" onClick={()=>useWorkspace.getState().set({fileReferences:fileReferences.filter(r=>r.path!==ref.path)})}><span className="truncate font-mono">{ref.path}</span><span>v{versions.find(v=>v.id===ref.versionId)?.number ?? "?"}</span><X className="size-3" aria-hidden /></button>)}</div>}
         <Composer
           value={draft}
           onChange={setDraft}
@@ -405,6 +410,15 @@ function AppPanel({
   const idle = useWorkspace((s) => s.status === "idle");
   const versionLoading=useWorkspace(s=>s.versionLoading),versionError=useWorkspace(s=>s.versionError);
 
+  const fileReferences=useWorkspace(s=>s.fileReferences);
+  const selectedPath=activeFile && Object.hasOwn(codeFiles,activeFile)?activeFile:Object.keys(codeFiles)[0];
+  const selectedAlready=fileReferences.some(ref=>ref.path===selectedPath && ref.versionId===currentVersionId);
+  const referenceFile=()=>{
+    if(!selectedPath || !currentVersionId || viewing)return;
+    if(fileReferences.length>=6)return toast("Select at most 6 files.");
+    set({fileReferences:[...fileReferences,{path:selectedPath,versionId:currentVersionId}],pane:"chat"});
+  };
+
   return (
     <Tabs value={tab} onValueChange={v=>set({tab:v as typeof tab})} className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-sm">
       <div className="relative flex h-[84px] shrink-0 flex-col justify-between gap-1 border-b px-3 py-2">
@@ -436,7 +450,7 @@ function AppPanel({
               </span>
             </ToolButton>
           </div>
-        {tab!=="preview" && <p className="absolute bottom-3 left-3 text-sm text-ink-2">{tab==="code"?`${Object.keys(codeFiles).length} source files · Read-only`:`${versions.length} saved versions`}</p>}
+        {tab!=="preview" && <div className="absolute inset-x-3 bottom-2 flex h-8 items-center gap-2"><p className="min-w-0 flex-1 truncate text-sm text-ink-2">{tab==="code"?`${Object.keys(codeFiles).length} source files · Read-only`:`${versions.length} saved versions`}</p>{tab==="code" && <Button size="sm" variant="secondary" disabled={!selectedPath || !currentVersionId || Boolean(viewing) || !idle || selectedAlready} title={viewing?"Return to current to reference a file":selectedPath} onClick={referenceFile}>{selectedAlready?"Added to chat":"Add file to chat"}</Button>}</div>}
       </div>
       {versionLoading && <p role="status" className="shrink-0 border-b px-3 py-2 text-sm text-ink-2">Loading version… Your current preview stays available.</p>}
       {versionError && <div role="alert" className="flex shrink-0 items-center gap-2 border-b px-3 py-2 text-sm"><p className="flex-1">{versionError.message}</p><Button size="sm" variant="ghost" onClick={()=>onView(versionError.id)}>Retry version</Button></div>}

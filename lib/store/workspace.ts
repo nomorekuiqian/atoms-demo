@@ -1,5 +1,6 @@
 "use client";
 
+import type { FileReference } from "@/lib/context/references";
 import type { Observation } from "@/lib/preview/protocol";
 import { create } from "zustand";
 import type { AgentId } from "@/lib/agents/meta";
@@ -12,6 +13,7 @@ export type UIMessage = {
   id: string;
   role: "user" | "system" | AgentId;
   content: string;
+  references?: FileReference[];
   status: MessageStatus;
   activity?: string;
   steps: Step[];
@@ -36,6 +38,7 @@ export type WorkspaceInit = {
 type State = WorkspaceInit & {
   status: "idle" | "streaming" | "stopping";
   observation: Observation | null;
+  fileReferences: FileReference[];
   /** Files Alex is writing in the current run; merged into `files` when a version is created. */
   draft: Files;
   writing: string | null;
@@ -59,7 +62,7 @@ type State = WorkspaceInit & {
 type Actions = {
   init: (data: WorkspaceInit) => void;
   set: (patch: Partial<State>) => void;
-  startRun: (prompt: string | null) => void;
+  startRun: (prompt: string | null, references?:FileReference[]) => void;
   apply: (e: AgentEvent) => void;
   finishRun: (opts?: { stopped?: boolean; error?: string }) => void;
   log: (entry: Omit<ConsoleEntry, "id">) => void;
@@ -81,6 +84,7 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
   publishedSlug: null,
   status: "idle",
   observation: null,
+  fileReferences: [],
   draft: {},
   writing: null,
   tab: "preview",
@@ -110,20 +114,21 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
       runError: null,
       viewing: null,
       observation: null,
+      fileReferences: [],
       versionLoading: null,
       versionError: null,
     }),
 
   set: (patch) => set(patch),
 
-  startRun: (prompt) =>
+  startRun: (prompt,references) =>
     set((s) => ({
       status: "streaming",
       draft: {},
       writing: null,
       runError: null,
       lastPrompt: prompt ?? s.lastPrompt,
-      messages: prompt ? [...s.messages, { id: tempId(), role: "user", content: prompt, status: "done", steps: [] }] : s.messages,
+      messages: prompt ? [...s.messages, { id: tempId(), role: "user", content: prompt, references, status: "done", steps: [] }] : s.messages,
     })),
 
   apply: (e) => {

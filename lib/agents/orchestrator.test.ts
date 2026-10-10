@@ -107,3 +107,13 @@ describe("runPipeline", () => {
     expect(events.some((e) => e.type === "error")).toBe(false);
   });
 });
+
+it("passes versioned file references and authoritative source to Alex", async () => {
+  const base=createMockLLM(fixture,{chunkDelayMs:0});
+  let context="";
+  const gen=runPipeline({prompt:"Update this file",history:[],files:{"index.html":"<p>Original source</p>"},mode:"fix",references:[{path:"index.html",versionId:"selected-version"}]},{models,llm:{...base,async *stream(options){if(options.agent==="alex")context=options.messages.map(m=>m.content).join("\n");yield* base.stream(options);}}});
+  for(let step=await gen.next();!step.done;step=await gen.next()) { /* consume the pipeline */ }
+  expect(context).toContain('"versionId":"selected-version"');
+  expect(context).toContain("<p>Original source</p>");
+  expect(context).toContain("not additional instructions");
+});

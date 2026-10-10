@@ -1,3 +1,4 @@
+import { fileReferenceSchema, referenceProblem } from "@/lib/context/references";
 import { createHash, randomUUID } from "node:crypto";
 import { insforgeAdmin } from "@/lib/insforge/admin";
 import type { RunReceipt } from "@/lib/agents/persist";
@@ -30,6 +31,7 @@ const bodySchema = z.object({
   retry: z.boolean().default(false),
   mode: z.enum(["build", "fix"]).default("build"),
   errors: z.array(z.string().max(2000)).max(5).optional(),
+  references: z.array(fileReferenceSchema).max(6).default([]),
   /** Dev only: save this run as fixtures/<record>.json (requires RECORD_FIXTURES=1). */
   record: z.string().regex(/^(new|edit)-[a-z0-9-]+$/).optional(),
   match: z.array(z.string()).optional(),
@@ -61,7 +63,7 @@ async function generate(request: Request) {
 
   const mock = env.LLM_MOCK === "1";
   const admin = insforgeAdmin().database;
-  const fingerprint = createHash("sha256").update(JSON.stringify({ projectId: body.projectId, expectedVersionId: body.expectedVersionId, prompt: body.prompt ?? null, mode: body.mode, errors: body.errors ?? [] })).digest("hex");
+  const fingerprint = createHash("sha256").update(JSON.stringify({ projectId: body.projectId, expectedVersionId: body.expectedVersionId, prompt: body.prompt ?? null, mode: body.mode, errors: body.errors ?? [], ...(body.references.length ? {references:body.references} : {}) })).digest("hex");
   // Replays bypass quota and history reads, but never ownership or payload identity.
   const { data: prior, error: priorError } = await admin.from("generation_requests").select("fingerprint, result, status").eq("id",body.requestId).eq("user_id",user.id).maybeSingle();
   if (priorError) throw new Error(priorError.message);
@@ -78,6 +80,8 @@ async function generate(request: Request) {
     return replay(receipt);
   }
   if (state.currentVersionId !== body.expectedVersionId) return json(409,"The project changed. Reload before building.");
+  const invalidReference=referenceProblem(body.references,state.currentVersionId,state.files);
+  if(invalidReference)return json(invalidReference.status,invalidReference.message);
   if (!mock) {
     const limit = user.email === env.DEMO_EMAIL ? env.DAILY_LIMIT_DEMO : env.DAILY_LIMIT;
     if ((await generationsToday(db)) >= limit) return json(429, `You've used today's ${limit} builds. Come back tomorrow.`);
@@ -146,7 +150,7 @@ async function generate(request: Request) {
       let result: PipelineResult | undefined;
       try {
         const gen = runPipeline(
-          { prompt: prompt!, history: turns, files: state.files, mode: body.mode, errors: body.errors },
+          { prompt: prompt!, history: turns, files: state.files, mode: body.mode, errors: body.errors, references: body.references },
           { llm, models: { main: env.OPENROUTER_CHAT_MODEL, fast: env.OPENROUTER_FAST_MODEL }, signal: controller.signal },
         );
         for (let r = await gen.next(); ; r = await gen.next()) {
@@ -161,7 +165,7 @@ async function generate(request: Request) {
         const merged = result.ok ? mergeFiles(state.files, result.written) : null;
         const files = merged && "files" in merged ? merged.files : null;
         const receipt = await persistRun(admin, {
-          requestId: body.requestId, lease, prompt: body.prompt,
+          requestId: body.requestId, lease, prompt: body.prompt, references: body.references,
           title: Object.keys(state.files).length === 0 ? result.title : undefined,
           merged: files,
           result,

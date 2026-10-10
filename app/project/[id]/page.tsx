@@ -1,3 +1,4 @@
+import { fileReferenceSchema, type FileReference } from "@/lib/context/references";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Workspace } from "@/components/workspace/workspace";
@@ -14,7 +15,7 @@ type MessageRow = {
   id: string;
   role: "user" | AgentId | "system";
   content: string;
-  meta: { status?: string; files?: string[] } | null;
+  meta: { status?: string; files?: string[]; references?:FileReference[] } | null;
   version: { number: number; summary: string | null } | null;
 };
 
@@ -24,6 +25,7 @@ function toUIMessage(m: MessageRow): UIMessage {
     id: m.id,
     role: m.role as UIMessage["role"],
     content: m.content,
+    references: Array.isArray(m.meta?.references) ? m.meta.references.slice(0,6).filter(ref=>fileReferenceSchema.safeParse(ref).success) : undefined,
     status: status === "thinking" || status === "working" ? "stopped" : status,
     steps: (m.meta?.files ?? []).map((path) => ({ kind: "tool" as const, action: "Write" as const, path, status: status === "failed" ? "failed" : "done" })),
     version: m.version ? { number: m.version.number, summary: m.version.summary ?? `Version ${m.version.number}` } : undefined,

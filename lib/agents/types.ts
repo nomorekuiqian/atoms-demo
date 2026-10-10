@@ -1,3 +1,4 @@
+import type { FileReference } from "@/lib/context/references";
 import type { AgentId } from "./meta";
 
 export type Files = Record<string, string>;
@@ -29,6 +30,7 @@ export type PipelineInput = {
   mode: Mode;
   /** Runtime errors reported by the preview, for mode "fix". */
   errors?: string[];
+  references?: FileReference[];
 };
 
 export type AgentOutput = {

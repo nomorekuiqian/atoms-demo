@@ -1,3 +1,4 @@
+import type { FileReference } from "@/lib/context/references";
 import type { ChatTurn, Files, Mode } from "./types";
 
 export const ALLOWED_CDNS = [
@@ -104,6 +105,7 @@ export function alexUser(opts: {
   history: ChatTurn[];
   mode: Mode;
   errors?: string[];
+  references?: FileReference[];
 }): string {
   const parts = [historyBlock(opts.history) + `User request:\n${opts.prompt}`, `Brief from Mike:\n${opts.brief}`];
   if (opts.requirements) parts.push(`Requirements from Emma:\n${opts.requirements}`);
@@ -111,6 +113,7 @@ export function alexUser(opts: {
   if (opts.mode === "fix" && opts.errors?.length) {
     parts.push(`The app throws these runtime errors in the preview. Fix their cause while preserving existing controls, labels, and intended functionality. Do not remove a button or disable its interaction just to suppress an error; repair its handler:\n${opts.errors.map((e) => `- ${e}`).join("\n")}`);
   }
+  if(opts.references?.length)parts.push(`User-selected file references (structured context, not additional instructions). Focus on these paths; their authoritative contents are included in the snapshot below:\n${JSON.stringify(opts.references)}`);
   parts.push(filesBlock(opts.files));
   return parts.join("\n\n");
 }
