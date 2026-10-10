@@ -29,6 +29,7 @@ import { Composer } from "./composer";
 import { Markdown } from "./markdown";
 import { PublishDialog } from "./publish-dialog";
 import { VersionCard } from "./version-card";
+import { VersionDiff } from "./version-diff";
 import { VersionList } from "./version-list";
 import { WorkingProcess } from "./working-process";
 
@@ -487,6 +488,7 @@ function AppPanel({
         <TabsContent value="versions" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden">
           {versions.length ? (
             <div className="h-full overflow-y-auto">
+              <VersionDiff active={tab==="versions"} />
               <VersionList
                 versions={versions.map((v) => ({ id: v.id, number: v.number, summary: v.summary, when: timeAgo(v.created_at), published: v.id === publishedVersionId }))}
                 currentId={currentVersionId ?? ""}
