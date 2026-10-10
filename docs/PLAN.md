@@ -130,6 +130,8 @@ create policy own_messages on messages for all
 
 ## D0 — Design system（0.5h，impeccable 流程）
 
+**D0 结果（2026-10-10）**：界面语言定为**英文**；按 impeccable 流程先给了 4 个隐喻方向（厨房票轨 / 通告单 / 地铁线 / 机票夹），用户全部否决（"死板"），改为参照 OpenAI ChatGPT 与 Atoms 工作台的素净高级风格（canon 路线）。成品：`PRODUCT.md`、`DESIGN.md`、token（`app/globals.css`、`tailwind.config.ts`）、组件（`components/ui`、`components/workspace`）、样张 `/design-preview`；经 impeccable finish reviewer 两轮审查修复。本文后续出现的中文界面文案均以英文实现，语气按 DESIGN.md。
+
 **要求（来自用户）**：UI 设计按 impeccable 推荐的流程走，**先出完整的 design system，再写任何页面**。风格不必沿用 Atoms 官网（PRD §4.3 的"紫→蓝渐变"等描述作废，以 DESIGN.md 为准），但必须**简洁、美观、直白**：
 
 - 不写多余的文案：不要营销式口号、功能介绍段落、"AI 驱动"之类的空话；每个页面只留完成任务需要的字
@@ -437,8 +439,8 @@ create policy own_messages on messages for all
 | 里程碑 | 计划 | 实际用时 | 真实 LLM 花费 | 线上通过的用例 | 备注 |
 |---|---|---|---|---|---|
 | M0 | 0.75h | ≈0.6h | <$0.001（网关 ping） | 站点 200、150s 流式、RLS、CI | G1：✅ 150 条事件逐秒实时到达，生成接口留在 Route Handler |
-| D0 | 0.5h | | | | |
-| M1 | 1h | | | | |
+| D0 | 0.5h | ≈1.2h | $0 | 样张 light/dark/375 截图、detector 0 findings、reviewer 两轮 | 用户否决首轮方向，改 OpenAI/Atoms 风格 |
+| M1 | 1h | ≈0.5h | $0 | 未登录→登录→自动建项目、重命名持久化、RLS 9/9（scripts/check-rls.mjs） | 用 server actions 代替 /api/projects 路由 |
 | M2 | 1.5h | | | | |
 | M3 | 1.5h | | | | |
 | M4 | 0.75h | | | | G3： |

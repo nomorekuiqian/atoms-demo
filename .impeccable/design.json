@@ -1,0 +1,748 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-10T04:15:20+00:00",
+  "title": "Design System: Atoms Lite",
+  "extensions": {
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Studio Ground",
+        "cssVar": "--bg",
+        "dark": "#161616",
+        "canonical": "#f7f7f8",
+        "oklch": "oklch(97.6% 0.001 286.4)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "cssVar": "--surface",
+        "dark": "#1f1f1f",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Soft Grey",
+        "cssVar": "--surface-2",
+        "dark": "#2a2a2a",
+        "canonical": "#f1f1f2",
+        "oklch": "oklch(95.8% 0.001 286.4)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "surface-3": {
+        "role": "neutral",
+        "displayName": "Mid Grey",
+        "cssVar": "--surface-3",
+        "dark": "#333333",
+        "canonical": "#e8e8ea",
+        "oklch": "oklch(93.2% 0.003 286.3)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef0"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "cssVar": "--line",
+        "dark": "rgba(255, 255, 255, 0.08)",
+        "canonical": "rgba(13, 13, 13, 0.08)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Hairline Strong",
+        "cssVar": "--line-strong",
+        "dark": "rgba(255, 255, 255, 0.16)",
+        "canonical": "rgba(13, 13, 13, 0.15)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "cssVar": "--ink",
+        "dark": "#ececec",
+        "canonical": "#0d0d0d",
+        "oklch": "oklch(15.9% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "cssVar": "--ink-2",
+        "dark": "#b4b4b4",
+        "canonical": "#5d5d5d",
+        "oklch": "oklch(47.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "cssVar": "--ink-3",
+        "dark": "#8f8f8f",
+        "canonical": "#6f6f6f",
+        "oklch": "oklch(54.2% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "on-ink": {
+        "role": "neutral",
+        "displayName": "On Ink",
+        "cssVar": "--on-ink",
+        "dark": "#0d0d0d",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "iris": {
+        "role": "primary",
+        "displayName": "Iris",
+        "cssVar": "--accent",
+        "dark": "#8d8ff5",
+        "canonical": "#5b5bd6",
+        "oklch": "oklch(54.0% 0.184 278.3)",
+        "tonalRamp": [
+          "#08002f",
+          "#1e036e",
+          "#3426a0",
+          "#4f4cc6",
+          "#6d70ed",
+          "#919afd",
+          "#bdc5fe",
+          "#eaedff"
+        ]
+      },
+      "iris-soft": {
+        "role": "primary",
+        "displayName": "Iris Wash",
+        "cssVar": "--accent-soft",
+        "dark": "#26264a",
+        "canonical": "#eeeefc",
+        "oklch": "oklch(95.3% 0.019 286.0)",
+        "tonalRamp": [
+          "#0a0a13",
+          "#24242e",
+          "#41414c",
+          "#60606c",
+          "#81818d",
+          "#a4a4b1",
+          "#c8c8d5",
+          "#ededfb"
+        ]
+      },
+      "iris-ink": {
+        "role": "primary",
+        "displayName": "Iris Ink",
+        "cssVar": "--accent-ink",
+        "dark": "#bcbdff",
+        "canonical": "#4040b0",
+        "oklch": "oklch(44.3% 0.173 276.7)",
+        "tonalRamp": [
+          "#070031",
+          "#1b056e",
+          "#312b9b",
+          "#4c50c1",
+          "#6a73e8",
+          "#8f9bfc",
+          "#bbc5fe",
+          "#eaedff"
+        ]
+      },
+      "mike": {
+        "role": "secondary",
+        "displayName": "Mike Amber",
+        "cssVar": "--mike",
+        "dark": "#f2b77e",
+        "canonical": "#8a4b12",
+        "oklch": "oklch(48.0% 0.108 56.6)",
+        "tonalRamp": [
+          "#160700",
+          "#3c1b00",
+          "#643406",
+          "#8e4f17",
+          "#b3703d",
+          "#d89360",
+          "#fdb887",
+          "#ffeadc"
+        ]
+      },
+      "mike-soft": {
+        "role": "secondary",
+        "displayName": "Mike Amber Tint",
+        "cssVar": "--mike-soft",
+        "dark": "#3a2a1a",
+        "canonical": "#f7ead9",
+        "oklch": "oklch(94.3% 0.027 74.8)",
+        "tonalRamp": [
+          "#120901",
+          "#2d2316",
+          "#4b4032",
+          "#6a5f51",
+          "#8c8071",
+          "#afa393",
+          "#d4c7b7",
+          "#f9ecdb"
+        ]
+      },
+      "emma": {
+        "role": "secondary",
+        "displayName": "Emma Plum",
+        "cssVar": "--emma",
+        "dark": "#f29cc0",
+        "canonical": "#9a2d5a",
+        "oklch": "oklch(47.6% 0.149 359.3)",
+        "tonalRamp": [
+          "#1d000a",
+          "#490224",
+          "#7a0640",
+          "#a0335f",
+          "#c65680",
+          "#ee79a2",
+          "#ffaec7",
+          "#fee8ee"
+        ]
+      },
+      "emma-soft": {
+        "role": "secondary",
+        "displayName": "Emma Plum Tint",
+        "cssVar": "--emma-soft",
+        "dark": "#3c1f2c",
+        "canonical": "#f8e4ec",
+        "oklch": "oklch(93.7% 0.024 351.3)",
+        "tonalRamp": [
+          "#13070c",
+          "#2e2026",
+          "#4d3d43",
+          "#6d5c63",
+          "#8e7d84",
+          "#b29fa7",
+          "#d6c3cb",
+          "#fce8f0"
+        ]
+      },
+      "bob": {
+        "role": "secondary",
+        "displayName": "Bob Slate",
+        "cssVar": "--bob",
+        "dark": "#8cc2f2",
+        "canonical": "#1f5a8e",
+        "oklch": "oklch(45.6% 0.104 248.9)",
+        "tonalRamp": [
+          "#000c1c",
+          "#002646",
+          "#004476",
+          "#2b6599",
+          "#4d87be",
+          "#70aae4",
+          "#9eceff",
+          "#e2f0ff"
+        ]
+      },
+      "bob-soft": {
+        "role": "secondary",
+        "displayName": "Bob Slate Tint",
+        "cssVar": "--bob-soft",
+        "dark": "#1a2c3d",
+        "canonical": "#e1edf8",
+        "oklch": "oklch(94.0% 0.020 245.6)",
+        "tonalRamp": [
+          "#050c13",
+          "#1d262e",
+          "#3a434c",
+          "#58636c",
+          "#79848e",
+          "#9ba7b1",
+          "#bfcbd5",
+          "#e4f0fb"
+        ]
+      },
+      "alex": {
+        "role": "secondary",
+        "displayName": "Alex Forest",
+        "cssVar": "--alex",
+        "dark": "#7fd6a4",
+        "canonical": "#1e6b43",
+        "oklch": "oklch(47.0% 0.099 156.2)",
+        "tonalRamp": [
+          "#001005",
+          "#012e18",
+          "#044f2d",
+          "#267249",
+          "#4b9469",
+          "#6fb88b",
+          "#93ddaf",
+          "#c5ffda"
+        ]
+      },
+      "alex-soft": {
+        "role": "secondary",
+        "displayName": "Alex Forest Tint",
+        "cssVar": "--alex-soft",
+        "dark": "#173023",
+        "canonical": "#e0f2e7",
+        "oklch": "oklch(94.5% 0.024 159.1)",
+        "tonalRamp": [
+          "#030e08",
+          "#1b2921",
+          "#37463d",
+          "#56665c",
+          "#77877d",
+          "#99aaa0",
+          "#bdcec4",
+          "#e2f4e9"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger",
+        "cssVar": "--danger",
+        "dark": "#ff6b70",
+        "canonical": "#c9252c",
+        "oklch": "oklch(54.2% 0.198 25.2)",
+        "tonalRamp": [
+          "#1f0001",
+          "#4d0006",
+          "#800010",
+          "#b7041c",
+          "#e03f40",
+          "#fe746d",
+          "#fdb3ac",
+          "#ffe9e6"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Danger Tint",
+        "cssVar": "--danger-soft",
+        "dark": "#3b1d1f",
+        "canonical": "#fdeded",
+        "oklch": "oklch(95.9% 0.017 17.5)",
+        "tonalRamp": [
+          "#120808",
+          "#2d2222",
+          "#4b3e3f",
+          "#6b5d5e",
+          "#8d7e7e",
+          "#b0a1a1",
+          "#d4c5c5",
+          "#faeaea"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Success",
+        "cssVar": "--success",
+        "dark": "#4cc38a",
+        "canonical": "#18794e",
+        "oklch": "oklch(51.1% 0.110 158.4)",
+        "tonalRamp": [
+          "#000f06",
+          "#022d1a",
+          "#054f30",
+          "#0e7449",
+          "#3d9669",
+          "#63ba8b",
+          "#88dfae",
+          "#c3ffdb"
+        ]
+      },
+      "success-soft": {
+        "role": "tertiary",
+        "displayName": "Success Tint",
+        "cssVar": "--success-soft",
+        "dark": "#16301f",
+        "canonical": "#e6f4ec",
+        "oklch": "oklch(95.5% 0.018 161.1)",
+        "tonalRamp": [
+          "#050e09",
+          "#1d2822",
+          "#3a453f",
+          "#59655e",
+          "#79867f",
+          "#9ca9a1",
+          "#bfcdc5",
+          "#e5f2eb"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Scrim",
+        "dark": "rgba(13, 13, 13, 0.32)",
+        "canonical": "rgba(13, 13, 13, 0.32)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display-lg": {
+        "displayName": "Display Large",
+        "purpose": "The home question, 640px and up. Once per screen."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page headline: home on phones, login, Projects, Not found."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Rare in-app titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Dialog titles and section heads."
+      },
+      "prompt": {
+        "displayName": "Prompt",
+        "purpose": "Home composer text."
+      },
+      "message": {
+        "displayName": "Message",
+        "purpose": "Agent message bodies, user bubble, workspace composer, project names. 65ch max."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "UI default: buttons, fields, menu items."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Tabs, small buttons, chips, field labels, meta lines."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Status pills, tooltips, Show N earlier chip."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "File paths, file list, code viewer."
+      }
+    },
+    "shadows": [
+      {
+        "name": "rest",
+        "value": "0 1px 2px rgba(13,13,13,0.04), 0 2px 8px rgba(13,13,13,0.04)",
+        "dark": "0 1px 2px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2)",
+        "cssVar": "--shadow-sm",
+        "purpose": "Raised panels, workspace composer, active tab thumb, version cards, projects list."
+      },
+      {
+        "name": "float",
+        "value": "0 2px 4px rgba(13,13,13,0.04), 0 12px 32px rgba(13,13,13,0.08)",
+        "dark": "0 2px 4px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.35)",
+        "cssVar": "--shadow-md",
+        "purpose": "Home composer, menus, toasts, floating issue report."
+      },
+      {
+        "name": "modal",
+        "value": "0 8px 16px rgba(13,13,13,0.06), 0 24px 64px rgba(13,13,13,0.14)",
+        "dark": "0 8px 16px rgba(0,0,0,0.35), 0 24px 64px rgba(0,0,0,0.5)",
+        "cssVar": "--shadow-lg",
+        "purpose": "Dialogs only."
+      },
+      {
+        "name": "focus-halo-field",
+        "value": "0 0 0 3px var(--accent-soft)",
+        "purpose": "Focused input, paired with an iris border."
+      },
+      {
+        "name": "focus-halo-composer",
+        "value": "0 0 0 4px var(--accent-soft)",
+        "purpose": "Focused composer, paired with an iris border."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The out curve for state changes and entrances."
+      },
+      {
+        "name": "duration-default",
+        "value": "180ms",
+        "purpose": "Default transition duration for colour, border, shadow, opacity."
+      },
+      {
+        "name": "rise",
+        "value": "rise 220ms cubic-bezier(0.16, 1, 0.3, 1) both (translateY 4px to 0, opacity 0 to 1)",
+        "purpose": "New chat messages, tool rows, issue report."
+      },
+      {
+        "name": "live-sweep",
+        "value": "mask linear-gradient(100deg, #000 35%, rgba(0,0,0,0.35) 50%, #000 65%) at 250% size, 1.8s linear infinite",
+        "purpose": "The one live motion: a light sweep across in-progress text."
+      },
+      {
+        "name": "breathe",
+        "value": "breathe 1.4s ease-in-out infinite (opacity 0.35 to 1)",
+        "purpose": "The dot on the file being written."
+      },
+      {
+        "name": "overlay-in",
+        "value": "fade-in with zoom-in 0.98, 200ms",
+        "purpose": "Menus and dialogs opening."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation and transition durations 0.01ms",
+        "purpose": "prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Display Large on home; Share, version pill, preview toolbar, Console and dashboard time column appear."
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Workspace splits into chat (38%, min 360px) and app panel; below it Chat / App tabs."
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one ink pill per screen (Publish, Sign in, New project).",
+      "html": "<button class=\"ds-btn-primary\">Publish</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 14px;border-radius:9999px;font:500 14px/21px var(--font-sans, Geist, ui-sans-serif, system-ui, sans-serif);border:1px solid transparent;cursor:pointer;transition:background-color 180ms cubic-bezier(0.16,1,0.3,1),color 180ms cubic-bezier(0.16,1,0.3,1),opacity 180ms cubic-bezier(0.16,1,0.3,1);background:var(--ink, #0d0d0d);color:var(--on-ink, #fff);} .ds-btn-primary:hover{opacity:.85;} .ds-btn-primary:focus-visible{outline:2px solid var(--accent, #5b5bd6);outline-offset:2px;} .ds-btn-primary:disabled{opacity:.4;pointer-events:none;}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Paper pill with a strong hairline (Share, Remix, Try again).",
+      "html": "<button class=\"ds-btn-secondary\">Share</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 14px;border-radius:9999px;font:500 14px/21px var(--font-sans, Geist, ui-sans-serif, system-ui, sans-serif);border:1px solid transparent;cursor:pointer;transition:background-color 180ms cubic-bezier(0.16,1,0.3,1),color 180ms cubic-bezier(0.16,1,0.3,1),opacity 180ms cubic-bezier(0.16,1,0.3,1);background:var(--surface, #fff);color:var(--ink, #0d0d0d);border-color:var(--line-strong, rgba(13,13,13,.15));} .ds-btn-secondary:hover{background:var(--surface-2, #f1f1f2);} .ds-btn-secondary:focus-visible{outline:2px solid var(--accent, #5b5bd6);outline-offset:2px;}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Unfilled pill for Cancel, Log in, Restore, Console.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 14px;border-radius:9999px;font:500 14px/21px var(--font-sans, Geist, ui-sans-serif, system-ui, sans-serif);border:1px solid transparent;cursor:pointer;transition:background-color 180ms cubic-bezier(0.16,1,0.3,1),color 180ms cubic-bezier(0.16,1,0.3,1),opacity 180ms cubic-bezier(0.16,1,0.3,1);background:transparent;color:var(--ink-2, #5d5d5d);} .ds-btn-ghost:hover{background:var(--surface-2, #f1f1f2);color:var(--ink, #0d0d0d);} .ds-btn-ghost:focus-visible{outline:2px solid var(--accent, #5b5bd6);outline-offset:2px;}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "40px field with label; iris border and wash halo on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Email</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\"></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;max-width:320px;} .ds-field-label{font:500 13px/18px var(--font-sans, Geist, system-ui, sans-serif);color:var(--ink, #0d0d0d);} .ds-input{height:40px;padding:0 12px;border-radius:12px;border:1px solid var(--line-strong, rgba(13,13,13,.15));background:var(--surface, #fff);color:var(--ink, #0d0d0d);font:400 14px/21px var(--font-sans, Geist, system-ui, sans-serif);caret-color:var(--accent, #5b5bd6);transition:border-color 150ms,box-shadow 150ms;} .ds-input::placeholder{color:var(--ink-3, #6f6f6f);} .ds-input:focus-visible{outline:none;border-color:var(--accent, #5b5bd6);box-shadow:0 0 0 3px var(--accent-soft, #eeeefc);}"
+    },
+    {
+      "name": "Tabs",
+      "kind": "nav",
+      "refersTo": "tabs-list",
+      "description": "Soft Grey pill track with a paper thumb for the active tab.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab\" aria-selected=\"true\">Preview</button><button class=\"ds-tab\" aria-selected=\"false\">Code</button><button class=\"ds-tab\" aria-selected=\"false\">Versions</button></div>",
+      "css": ".ds-tabs{display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:9999px;background:var(--surface-2, #f1f1f2);} .ds-tab{height:28px;padding:0 12px;border:0;border-radius:9999px;background:transparent;color:var(--ink-2, #5d5d5d);font:500 13px/18px var(--font-sans, Geist, system-ui, sans-serif);cursor:pointer;transition:background-color 150ms,color 150ms,box-shadow 150ms;} .ds-tab:hover{color:var(--ink, #0d0d0d);} .ds-tab[aria-selected=true]{background:var(--surface, #fff);color:var(--ink, #0d0d0d);box-shadow:var(--shadow-sm, 0 1px 2px rgba(13,13,13,.04), 0 2px 8px rgba(13,13,13,.04));} .ds-tab:focus-visible{outline:2px solid var(--accent, #5b5bd6);outline-offset:2px;}"
+    },
+    {
+      "name": "Prompt Chip",
+      "kind": "chip",
+      "refersTo": "prompt-chip",
+      "description": "Example prompts under the home composer.",
+      "html": "<button class=\"ds-chip\">Pomodoro timer</button>",
+      "css": ".ds-chip{height:32px;padding:0 14px;border-radius:9999px;border:1px solid var(--line, rgba(13,13,13,.08));background:var(--surface, #fff);color:var(--ink-2, #5d5d5d);font:400 13px/18px var(--font-sans, Geist, system-ui, sans-serif);cursor:pointer;transition:border-color 180ms,color 180ms;} .ds-chip:hover{border-color:var(--line-strong, rgba(13,13,13,.15));color:var(--ink, #0d0d0d);} .ds-chip:focus-visible{outline:2px solid var(--accent, #5b5bd6);outline-offset:2px;}"
+    },
+    {
+      "name": "Composer",
+      "kind": "custom",
+      "refersTo": "composer",
+      "description": "The shared prompt box: 24px radius, round ink send action.",
+      "html": "<form class=\"ds-composer\"><textarea class=\"ds-composer-text\" rows=\"2\" placeholder=\"Describe a change\"></textarea><div class=\"ds-composer-foot\"><button type=\"button\" class=\"ds-composer-send\" aria-label=\"Send\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m5 12 7-7 7 7\"/><path d=\"M12 19V5\"/></svg></button></div></form>",
+      "css": ".ds-composer{max-width:560px;border-radius:24px;border:1px solid var(--line-strong, rgba(13,13,13,.15));background:var(--surface, #fff);box-shadow:var(--shadow-sm, 0 1px 2px rgba(13,13,13,.04), 0 2px 8px rgba(13,13,13,.04));transition:box-shadow 200ms,border-color 200ms;} .ds-composer:focus-within{border-color:var(--accent, #5b5bd6);box-shadow:0 0 0 4px var(--accent-soft, #eeeefc);} .ds-composer-text{display:block;width:100%;resize:none;border:0;background:transparent;padding:16px 20px 0;font:400 15px/1.6 var(--font-sans, Geist, system-ui, sans-serif);color:var(--ink, #0d0d0d);outline:none;caret-color:var(--accent, #5b5bd6);} .ds-composer-text::placeholder{color:var(--ink-3, #6f6f6f);} .ds-composer-foot{display:flex;justify-content:flex-end;padding:4px 12px 12px;} .ds-composer-send{display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:9999px;background:var(--ink, #0d0d0d);color:var(--on-ink, #fff);cursor:pointer;transition:opacity 180ms;} .ds-composer-send:hover{opacity:.85;} .ds-composer-send:focus-visible{outline:2px solid var(--accent, #5b5bd6);outline-offset:2px;}"
+    },
+    {
+      "name": "Agent Message Header",
+      "kind": "custom",
+      "refersTo": "agent-avatar-alex",
+      "description": "Monogram avatar, Name | Role, live-sweep activity at right.",
+      "html": "<div class=\"ds-agent\"><span class=\"ds-avatar\">A</span><span class=\"ds-agent-name\">Alex</span><span class=\"ds-agent-div\"></span><span class=\"ds-agent-role\">Engineer</span><span class=\"ds-live\">Writing app.js</span></div>",
+      "css": ".ds-agent{display:flex;align-items:center;gap:12px;max-width:520px;font:400 14px/21px var(--font-sans, Geist, system-ui, sans-serif);} .ds-avatar{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:9999px;background:var(--alex-soft, #e0f2e7);color:var(--alex, #1e6b43);font-weight:600;font-size:13px;} .ds-agent-name{font-weight:500;color:var(--ink, #0d0d0d);margin-right:-4px;} .ds-agent-div{width:1px;height:12px;background:var(--line-strong, rgba(13,13,13,.15));margin-right:-4px;} .ds-agent-role{color:var(--ink-2, #5d5d5d);} .ds-live{margin-left:auto;font-size:13px;color:var(--ink-2, #5d5d5d);-webkit-mask-image:linear-gradient(100deg,#000 35%,rgba(0,0,0,.35) 50%,#000 65%);mask-image:linear-gradient(100deg,#000 35%,rgba(0,0,0,.35) 50%,#000 65%);-webkit-mask-size:250% 100%;mask-size:250% 100%;animation:ds-sweep 1.8s linear infinite;} @keyframes ds-sweep{from{-webkit-mask-position:100% 0;mask-position:100% 0;}to{-webkit-mask-position:0% 0;mask-position:0% 0;}} @media (prefers-reduced-motion: reduce){.ds-live{animation:none;}}"
+    },
+    {
+      "name": "Tool Row",
+      "kind": "custom",
+      "refersTo": "tool-row",
+      "description": "Hairline row in the Working process timeline.",
+      "html": "<div class=\"ds-tool\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 12.5 8 15l2 2.5\"/><path d=\"m14 12.5 2 2.5-2 2.5\"/><path d=\"M14 2v4a2 2 0 0 0 2 2h4\"/><path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z\"/></svg><span class=\"ds-tool-act\">Write file</span><span class=\"ds-tool-path\">style.css</span><span class=\"ds-tool-ok\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span></div>",
+      "css": ".ds-tool{display:flex;align-items:center;gap:8px;height:36px;max-width:420px;padding:0 12px;border-radius:12px;border:1px solid var(--line, rgba(13,13,13,.08));background:var(--surface, #fff);font:400 13px/18px var(--font-sans, Geist, system-ui, sans-serif);color:var(--ink-2, #5d5d5d);} .ds-tool-path{font:400 12.5px/20px var(--font-mono, 'Geist Mono', ui-monospace, monospace);color:var(--ink, #0d0d0d);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .ds-tool-ok{margin-left:auto;display:grid;color:var(--success, #18794e);}"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "status-pill-published",
+      "description": "Small soft-tinted status (Published, Failed, Stopped).",
+      "html": "<span class=\"ds-pill\">Published</span>",
+      "css": ".ds-pill{display:inline-block;padding:2px 8px;border-radius:9999px;background:var(--success-soft, #e6f4ec);color:var(--success, #18794e);font:500 12px/16px var(--font-sans, Geist, system-ui, sans-serif);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Studio",
+    "overview": "Atoms Lite is a calm room where a small team works and the thing they make is the only loud object in it. The interface is a near-white neutral ground with white raised surfaces, hairline borders, near-black ink, and one iris accent that appears only when something is focused, selected, or working. Everything around the generated app is grey on purpose, so the app's own colours read as the result, not as chrome.\n\nDensity is relaxed and conversational on the chat side and tool-like on the app side. Chat runs directly on the ground with no bubble behind agent messages; agents are identified by soft-tinted monogram avatars and a \"Name | Role\" label, and their work is shown as a quiet timeline of hairline tool rows. The preview lives in one raised white panel. Instrument Serif appears only as a large headline; every other word is set in Geist, and code in Geist Mono.\n\nThe system is refined rather than themed. It refuses metaphor worlds (kitchen pass, call sheet, transit map, ticket wallet were tried and rejected as stiff) and the dark-neon \"AI builder\" default. Light and dark themes share one token set.",
+    "keyCharacteristics": [
+      "Near-white ground (#F7F7F8) with chat set directly on it; white raised panels for tools.",
+      "One iris accent, reserved for focus, selection and in-progress state.",
+      "Ink-black pill for the single primary action on a screen (Publish, Sign in, New project).",
+      "Instrument Serif only at display size; Geist everywhere else.",
+      "Hairline borders at 8% ink, soft two-layer shadows, generous radii (12px fields, 16px panels, 24px composer).",
+      "One live motion: a light sweep across in-progress text."
+    ],
+    "rules": [
+      {
+        "name": "The Only Colour Rule",
+        "body": "The generated app is the only colourful thing on screen. Chrome stays neutral; agent tints live only inside 32px (or 24px) monograms and status colours only inside small pills and icons.",
+        "section": "colors"
+      },
+      {
+        "name": "The Iris Means Now Rule",
+        "body": "Iris marks focus, selection or work in progress, and nothing else. If an iris element is still on screen after the user has stopped interacting and nothing is running, it is decoration and must go.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Black Pill Rule",
+        "body": "Each screen has one ink-filled primary button. In the workspace it is Publish, and it stays visible at every width.",
+        "section": "colors"
+      },
+      {
+        "name": "The Serif Is a Greeting Rule",
+        "body": "Instrument Serif is used only at 44px or larger, once per screen, for the page headline. It never appears in buttons, labels, messages, dialogs or empty states.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Shouting Rule",
+        "body": "No uppercase labels, no letter-spaced small caps, no eyebrow text above headlines. Hierarchy comes from size and ink weight.",
+        "section": "typography"
+      },
+      {
+        "name": "The Three Heights Rule",
+        "body": "Only Rest, Float and Modal exist. A surface placed on another surface is separated by a hairline, not by a fourth shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** set the chat directly on the #F7F7F8 ground and keep tools in one raised white panel.",
+      "**Do** keep exactly one ink pill per screen; in the workspace it is Publish, visible at every width.",
+      "**Do** reserve iris for focus, selection and in-progress state.",
+      "**Do** use Instrument Serif only for the one display headline (44px, or 60px from 640px up).",
+      "**Do** show agent progress as hairline tool rows and live-sweep activity text, never a generic spinner screen.",
+      "**Do** switch the workspace to Chat / App tabs below 768px.",
+      "**Do** write UI copy in English, short and direct: a label says what happens (\"Publish\", \"Restore\", \"Try again\"), an error says what to do next.",
+      "**Do** keep transitions at 180ms on the out curve and honour reduced motion."
+    ],
+    "donts": [
+      "**Don't** build metaphor themes (kitchens, call sheets, transit maps, tickets) or the dark-neon \"AI builder\" look.",
+      "**Don't** fill text with colour gradients; the live sweep's opacity mask is the only gradient that touches text.",
+      "**Don't** use the iris accent decoratively: no iris buttons, headings, icons at rest, borders at rest, or backgrounds that aren't a selected row.",
+      "**Don't** put cards inside cards; inside a panel, divide with hairline rows.",
+      "**Don't** add colour to the chrome; the generated app is the only colour on screen.",
+      "**Don't** use Instrument Serif below 44px or more than once per screen.",
+      "**Don't** add uppercase eyebrows, kickers or letter-spaced labels above headlines.",
+      "**Don't** write filler copy: no slogans, no \"AI-powered\", no feature-explainer paragraphs, no invented testimonials or numbers.",
+      "**Don't** add a fourth shadow height or hard offset shadows."
+    ]
+  }
+}

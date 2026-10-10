@@ -5,6 +5,7 @@ node_modules/
 
 # next.js / build output
 .next/
+.next-dev/
 out/
 build/
 dist/
@@ -53,3 +54,12 @@ npm-debug.log*
 .roo
 .trae
 .windsurf
+
+# impeccable working files (keep config, surfaces, design.json)
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/questions/
+.impeccable/live/
+.impeccable/build/
+.impeccable/hook.cache.json
+.next-rec/

@@ -2,58 +2,164 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Atoms Lite design tokens — see DESIGN.md */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 252 83% 60%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 252 83% 60%;
-    --radius: 0.75rem;
+    --bg: #f7f7f8;
+    --surface: #ffffff;
+    --surface-2: #f1f1f2;
+    --surface-3: #e8e8ea;
+    --line: rgba(13, 13, 13, 0.08);
+    --line-strong: rgba(13, 13, 13, 0.15);
+    --ink: #0d0d0d;
+    --ink-2: #5d5d5d;
+    --ink-3: #6f6f6f;
+    --on-ink: #ffffff;
+
+    --accent: #5b5bd6;
+    --accent-hover: #4f4fc4;
+    --accent-soft: #eeeefc;
+    --accent-ink: #4040b0;
+
+    --danger: #c9252c;
+    --danger-soft: #fdeded;
+    --success: #18794e;
+    --success-soft: #e6f4ec;
+    --warning: #9a5200;
+    --warning-soft: #fdf1e2;
+
+    --mike: #8a4b12;
+    --mike-soft: #f7ead9;
+    --emma: #9a2d5a;
+    --emma-soft: #f8e4ec;
+    --bob: #1f5a8e;
+    --bob-soft: #e1edf8;
+    --alex: #1e6b43;
+    --alex-soft: #e0f2e7;
+
+    --shadow-sm: 0 1px 2px rgba(13, 13, 13, 0.04), 0 2px 8px rgba(13, 13, 13, 0.04);
+    --shadow-md: 0 2px 4px rgba(13, 13, 13, 0.04), 0 12px 32px rgba(13, 13, 13, 0.08);
+    --shadow-lg: 0 8px 16px rgba(13, 13, 13, 0.06), 0 24px 64px rgba(13, 13, 13, 0.14);
+
+    color-scheme: light;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 252 83% 66%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 252 83% 66%;
+    --bg: #161616;
+    --surface: #1f1f1f;
+    --surface-2: #2a2a2a;
+    --surface-3: #333333;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+    --ink: #ececec;
+    --ink-2: #b4b4b4;
+    --ink-3: #8f8f8f;
+    --on-ink: #0d0d0d;
+
+    --accent: #8d8ff5;
+    --accent-hover: #a3a5f8;
+    --accent-soft: #26264a;
+    --accent-ink: #bcbdff;
+
+    --danger: #ff6b70;
+    --danger-soft: #3b1d1f;
+    --success: #4cc38a;
+    --success-soft: #16301f;
+    --warning: #f1a43c;
+    --warning-soft: #36260f;
+
+    --mike: #f2b77e;
+    --mike-soft: #3a2a1a;
+    --emma: #f29cc0;
+    --emma-soft: #3c1f2c;
+    --bob: #8cc2f2;
+    --bob-soft: #1a2c3d;
+    --alex: #7fd6a4;
+    --alex-soft: #173023;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.35), 0 24px 64px rgba(0, 0, 0, 0.5);
+
+    color-scheme: dark;
+  }
+
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01" on, "cv11" on;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--accent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
+  }
+
+  code,
+  kbd,
+  pre {
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
+@layer utilities {
+  .live-sweep {
+    -webkit-mask-image: linear-gradient(100deg, #000 35%, rgba(0, 0, 0, 0.35) 50%, #000 65%);
+    mask-image: linear-gradient(100deg, #000 35%, rgba(0, 0, 0, 0.35) 50%, #000 65%);
+    -webkit-mask-size: 250% 100%;
+    mask-size: 250% 100%;
+    animation: live-sweep 1.8s linear infinite;
   }
-  body {
-    @apply bg-background text-foreground antialiased;
+
+  @keyframes live-sweep {
+    from {
+      -webkit-mask-position: 100% 0;
+      mask-position: 100% 0;
+    }
+    to {
+      -webkit-mask-position: 0% 0;
+      mask-position: 0% 0;
+    }
   }
 }
