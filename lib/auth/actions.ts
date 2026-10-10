@@ -1,11 +1,12 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAuthActions } from "@insforge/sdk/ssr";
 import { serverEnv } from "@/lib/env";
 import { safeNext } from "./redirect";
+import { OAUTH_NEXT_COOKIE, OAUTH_VERIFIER_COOKIE } from "./oauth";
 
 export type AuthState = { error?: string; field?: "email" | "password" } | undefined;
 
@@ -44,6 +45,31 @@ export async function signIn(_prev: AuthState, formData: FormData) {
 
 export async function signUp(_prev: AuthState, formData: FormData) {
   return authWithPassword("signup", formData);
+}
+
+export async function signInGoogle(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  // Next.js validates Server Action Origin against Host before running this action.
+  const origin = (await headers()).get("origin");
+  if (!origin || !/^https?:\/\//.test(origin)) return { error: "Please reload this page and try again." };
+  const cookieStore = await cookies();
+  let authorizationUrl: string;
+  try {
+    const auth = createAuthActions({ cookies: cookieStore });
+    const { data, error } = await auth.signInWithOAuth("google", {
+      redirectTo: new URL("/api/auth/callback", origin).toString(),
+      skipBrowserRedirect: true,
+    });
+    if (error || !data?.url || !data.codeVerifier) {
+      return { error: "Google sign-in is unavailable right now. Please try again." };
+    }
+    const options = { httpOnly: true, secure: new URL(origin).protocol === "https:", sameSite: "lax" as const, path: "/", maxAge: 600 };
+    cookieStore.set(OAUTH_VERIFIER_COOKIE, data.codeVerifier, options);
+    cookieStore.set(OAUTH_NEXT_COOKIE, safeNext(formData.get("next")), options);
+    authorizationUrl = data.url;
+  } catch {
+    return { error: "Couldn't connect to Google sign-in. Please try again." };
+  }
+  redirect(authorizationUrl);
 }
 
 /** One-click shared demo account. The password never leaves the server. */
