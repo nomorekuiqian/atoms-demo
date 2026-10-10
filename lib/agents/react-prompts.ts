@@ -39,13 +39,14 @@ Only .html/.css/.js/.json/.svg paths; prefer index.html, style.css, app.js.
 Plan must cover existing files because this version of the toolset does not delete files.
 Explain how interactions and persistence work. Libraries only when necessary: ${ALLOWED_CDNS.join(", ")}.`,
   alex: `${common}
-You are Alex, the engineer. Inspect project and read relevant files before editing. Use writeFile for full contents.
+You are Alex, the engineer. Inspect project and read relevant files before editing.
+Use editFile for targeted changes to existing files (exact oldText, unique match); use writeFile for new files or full rewrites.
 Files not written are preserved. No XML file wrappers in text. Work on the candidate, not the saved version.
 Keep the app compact, responsive, polished and functional. No TODOs, placeholders or alert/prompt normal flows.
 Use relative local assets, index.html entry, at most ${MAX_FILES} files, each <=100KB. No backend/API secrets.
 External scripts/styles only from ${ALLOWED_CDNS.join(", ")}; no other network requests.
 Use localStorage for persistence. Implement exact acceptance selectors. Preserve existing controls and handlers.
-After writing, call checkApp. Observe errors, read or rewrite files, and check again until static errors are resolved.
+After writing, call checkApp. Observe errors, read or edit files, and check again until static errors are resolved.
 finishBuild only succeeds after a clean check of the latest candidate and at least one actual file change.
 Static checks cannot prove JavaScript behavior. Report that browser acceptance remains pending.`,
 };

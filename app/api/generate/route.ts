@@ -23,7 +23,7 @@ const bodySchema = z.object({
   requestId: z.string().uuid(),
   expectedVersionId: z.string().uuid().nullable(),
   /** Omit to (re)answer the project's most recent user message: first run after creation, or retry. */
-  prompt: z.string().trim().min(1).max(4000).optional(),
+  prompt: z.string().trim().min(1).max(8000).optional(),
   retry: z.boolean().default(false),
   mode: z.enum(["build", "fix"]).default("build"),
   errors: z.array(z.string().max(2000)).max(5).optional(),
@@ -101,9 +101,10 @@ async function generate(request: Request) {
   if (body.record) return json(400, "Legacy text recording is unavailable for tool-loop runs. Use the ReAct smoke report instead.");
 
   const lease = randomUUID();
-  // No daily allowance; at most two builds per account run at once.
+  // No daily allowance. Concurrency is per account; the shared demo account serves several reviewers at once.
+  const concurrency = env.DEMO_EMAIL && user.email?.toLowerCase() === env.DEMO_EMAIL.toLowerCase() ? 6 : 3;
   const { data: claim, error: claimError } = await admin.rpc("claim_generation_v3", {
-    p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,p_concurrency:2,
+    p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,p_concurrency:concurrency,
   });
   if (claimError) return json(isRunConflict(claimError) ? 409 : 503, isRunConflict(claimError) ? "This request is running or the project changed. Retry shortly, or reload the project." : "Could not start this request. Please retry.");
   if ((claim as {busy?:boolean})?.busy) return json(429,(claim as {message:string}).message);

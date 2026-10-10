@@ -12,9 +12,10 @@ import { REACT_INSTRUCTIONS } from "./react-prompts";
 import type { AgentId } from "./meta";
 import type { AgentEvent, AgentOutput, Files, PipelineInput, PipelineResult, ToolTrace } from "./types";
 
-// A real three-file app used ~120k tokens (input dominates, each step resends context); ~$0.04 at the cap on Haiku 5.5.
-export const DEFAULT_LIMITS = { steps: 48, tokens: 300_000, timeoutMs: 240_000, delegations: 8, tools: 160 };
-const ROLE_STEPS: Record<AgentId, number> = { mike: 12, emma: 8, bob: 8, alex: 20 };
+// A real three-file app used ~120k tokens (input dominates, each step resends context); ~$0.06 at the cap on Haiku 5.5.
+// Iterated apps grow, so the cap leaves room for several edit rounds; editFile keeps small changes cheap.
+export const DEFAULT_LIMITS = { steps: 56, tokens: 500_000, timeoutMs: 240_000, delegations: 8, tools: 160 };
+const ROLE_STEPS: Record<AgentId, number> = { mike: 12, emma: 8, bob: 8, alex: 24 };
 const empty = z.object({}).strict();
 const taskSchema = z.object({ task: z.string().min(1).max(3000) }).strict();
 const pathSchema = z.object({ path: z.string().min(1).max(160) }).strict();
@@ -128,7 +129,7 @@ export async function* runPipeline(input: PipelineInput, deps: PipelineDeps): As
     try {
     const agent = new ToolLoopAgent({
       id, model: deps.modelFor(id, modelId), instructions: REACT_INSTRUCTIONS[id], tools,
-      toolChoice: "required", maxRetries: 1, maxOutputTokens: id === "alex" ? 12000 : 4500,
+      toolChoice: "required", maxRetries: 1, maxOutputTokens: id === "alex" ? 32000 : 4500,
       stopWhen: [isStepCount(ROLE_STEPS[id]), () => finished],
       prepareStep: () => {
         budget();
@@ -305,6 +306,24 @@ export async function* runPipeline(input: PipelineInput, deps: PipelineDeps): As
           if (!live) emit({ type: "file_start", path });
           for (let offset = sent; offset < content.length; offset += 2048) emit({ type: "file_delta", path, delta: content.slice(offset, offset + 2048) });
           if (live) live.closed = true;
+          emit({ type: "file_end", path });
+          return { ok: true, path, revision };
+        }),
+        editFile: make("editFile", "Replace exact text in one existing file. Each oldText must appear exactly once; prefer this over writeFile for targeted changes.", pathSchema.extend({ edits: z.array(z.object({ oldText: z.string().min(1), newText: z.string() }).strict()).min(1).max(20) }), ({ path, edits }) => {
+          const error = validatePath(path);
+          if (error || !Object.hasOwn(local, path)) return { ok: false, error: error ?? "File does not exist. Use writeFile to create it." };
+          let content = local[path];
+          for (const [i, { oldText, newText }] of edits.entries()) {
+            const at = content.indexOf(oldText);
+            if (at === -1) return { ok: false, error: `Edit ${i + 1}: oldText was not found. Re-read the file and copy the text exactly.` };
+            if (content.indexOf(oldText, at + 1) !== -1) return { ok: false, error: `Edit ${i + 1}: oldText appears more than once. Include more surrounding text.` };
+            content = content.slice(0, at) + newText + content.slice(at + oldText.length);
+          }
+          if (new TextEncoder().encode(content).length > MAX_FILE_BYTES) return { ok: false, error: "File exceeds 100KB." };
+          if (content === local[path]) return { ok: true, changed: false };
+          local[path] = content; revision++;
+          emit({ type: "file_start", path });
+          for (let offset = 0; offset < content.length; offset += 2048) emit({ type: "file_delta", path, delta: content.slice(offset, offset + 2048) });
           emit({ type: "file_end", path });
           return { ok: true, path, revision };
         }),

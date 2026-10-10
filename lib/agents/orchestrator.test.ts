@@ -72,6 +72,20 @@ describe("independent SDK ReAct loops", () => {
     expect(result.agents[1].trace?.filter(t => t.tool === "readFile").map(t => t.status)).toEqual(["done", "failed", "done"]);
   });
 
+  it("applies exact unique edits and returns correctable feedback for ambiguous ones", async () => {
+    const files = { "index.html": "<p>a</p><p>a</p><b>keep</b>" };
+    const edit = (edits: unknown) => t("editFile", { path: "index.html", edits });
+    const { result } = await run(scripts({ mike, alex: [
+      edit([{ oldText: "<p>a</p>", newText: "x" }]),
+      edit([{ oldText: "missing", newText: "x" }]),
+      edit([{ oldText: "<p>a</p><p>a</p>", newText: "<p>b</p>" }]),
+      t("checkApp"), finish,
+    ] }), { ...existing, files });
+    expect(result.ok).toBe(true);
+    expect(result.written["index.html"]).toBe("<p>b</p><b>keep</b>");
+    expect(result.agents[1].trace?.filter(t => t.tool === "editFile").map(t => t.status)).toEqual(["failed", "failed", "done"]);
+  });
+
   it("rejects stale checks after an additional write", async () => {
     const { result } = await run(scripts({ mike, alex: [write("<p>new</p>"), t("checkApp"), write('<script src="missing.js"></script>'), finish] }), existing);
     expect(result.ok).toBe(false); expect(result.written).toEqual({});
