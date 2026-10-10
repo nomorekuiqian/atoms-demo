@@ -3,26 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LogoMark } from "@/components/brand/logo";
 import { AppFrame } from "@/components/app-frame";
-import type { Files } from "@/lib/agents/types";
-import { insforgeAdmin } from "@/lib/insforge/admin";
-import { SLUG_PATTERN } from "@/lib/publish/slug";
+import {cache} from "react";
+import {getPublished} from "@/lib/remix/load";
 
 export const dynamic = "force-dynamic";
 
-/** Published version by slug. Read with the admin key; only the published snapshot leaves the server. */
-async function load(slug: string) {
-  if (!SLUG_PATTERN.test(slug)) return null;
-  const db = insforgeAdmin().database;
-  const { data: project } = await db
-    .from("projects")
-    .select("title, published_version_id")
-    .eq("published_slug", slug)
-    .maybeSingle();
-  if (!project?.published_version_id) return null;
-  const { data: version } = await db.from("versions").select("files").eq("id", project.published_version_id).maybeSingle();
-  if (!version) return null;
-  return { title: project.title as string, files: version.files as Files };
-}
+/** One public snapshot read shared by metadata and page rendering. */
+const load=cache(getPublished);
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const app = await load((await params).slug);

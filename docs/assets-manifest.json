@@ -2,7 +2,7 @@
   {
     "id": "mike",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/agents/v1/mike.png",
     "outputPath": "public/assets/agents/mike-v1.webp",
     "promptPath": "design-assets/agents/v1/prompts.md",
@@ -19,13 +19,15 @@
     "surface": "AgentAvatar",
     "acceptanceId": "T20 / V1",
     "originality": "Original generated artwork; no third-party character reference.",
-    "deploymentUrl": null,
-    "deploymentId": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/agents/mike-v1.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   },
   {
     "id": "emma",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/agents/v1/emma.png",
     "outputPath": "public/assets/agents/emma-v1.webp",
     "promptPath": "design-assets/agents/v1/prompts.md",
@@ -44,13 +46,15 @@
     "surface": "AgentAvatar",
     "acceptanceId": "T20 / V1",
     "originality": "Original generated artwork; no third-party character reference.",
-    "deploymentUrl": null,
-    "deploymentId": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/agents/emma-v1.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   },
   {
     "id": "bob",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/agents/v1/bob.png",
     "outputPath": "public/assets/agents/bob-v1.webp",
     "promptPath": "design-assets/agents/v1/prompts.md",
@@ -69,13 +73,15 @@
     "surface": "AgentAvatar",
     "acceptanceId": "T20 / V1",
     "originality": "Original generated artwork; no third-party character reference.",
-    "deploymentUrl": null,
-    "deploymentId": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/agents/bob-v1.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   },
   {
     "id": "alex",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/agents/v1/alex.png",
     "outputPath": "public/assets/agents/alex-v1.webp",
     "promptPath": "design-assets/agents/v1/prompts.md",
@@ -94,13 +100,15 @@
     "surface": "AgentAvatar",
     "acceptanceId": "T20 / V1",
     "originality": "Original generated artwork; no third-party character reference.",
-    "deploymentUrl": null,
-    "deploymentId": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/agents/alex-v1.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   },
   {
     "id": "empty-project",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/illustrations/v1/empty-project.png",
     "outputPath": "public/assets/illustrations/empty-project-v1.webp",
     "promptPath": "design-assets/illustrations/v1/prompt.md",
@@ -117,13 +125,15 @@
     "surface": "Workspace empty preview",
     "acceptanceId": "V3",
     "originality": "Original generated artwork; no third-party character reference.",
-    "deploymentUrl": null,
-    "deploymentId": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/illustrations/empty-project-v1.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   },
   {
     "id": "example-my-pomodoro",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/examples/v1/my-pomodoro.png",
     "outputPath": "public/assets/examples/my-pomodoro-1015bdd7.webp",
     "captureProjectId": "c71d97f6-444e-4869-8290-cecc837305be",
@@ -141,12 +151,15 @@
     "surface": "Discover",
     "acceptanceId": "V4",
     "alpha": false,
-    "deploymentUrl": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/examples/my-pomodoro-1015bdd7.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   },
   {
     "id": "example-expense-tracker",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/examples/v1/expense-tracker.png",
     "outputPath": "public/assets/examples/expense-tracker-c6a2c34d.webp",
     "captureProjectId": "af986266-e34a-409e-b141-902ff600ace5",
@@ -164,12 +177,15 @@
     "surface": "Discover",
     "acceptanceId": "V4",
     "alpha": false,
-    "deploymentUrl": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/examples/expense-tracker-c6a2c34d.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   },
   {
     "id": "example-snake-classic",
     "version": 1,
-    "status": "integrated",
+    "status": "deployed",
     "sourcePath": "design-assets/examples/v1/snake-classic.png",
     "outputPath": "public/assets/examples/snake-classic-92db5530.webp",
     "captureProjectId": "852b982f-6f5a-4777-8631-baf9fd436054",
@@ -187,6 +203,9 @@
     "surface": "Discover",
     "acceptanceId": "V4",
     "alpha": false,
-    "deploymentUrl": null
+    "deploymentUrl": "https://53bg3mbj.insforge.site/assets/examples/snake-classic-92db5530.webp",
+    "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
+    "verifiedAt": "2026-10-10",
+    "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
   }
 ]

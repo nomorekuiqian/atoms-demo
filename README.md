@@ -1,8 +1,8 @@
 # Atoms Lite
 
-用一句话生成可运行的 HTML/CSS/JS 应用。Mike 分派需求，Emma 整理产品要求，Bob 规划文件，Alex 编写代码；过程流式展示，支持继续修改、历史版本、运行错误修复和公开发布。
+用一句话生成可运行的 HTML/CSS/JS 应用。Mike 分派需求，Emma 整理产品要求，Bob 规划文件，Alex 编写代码；过程流式展示，支持继续修改、历史版本、运行错误修复和公开发布。增强版还支持版本检查、文件引用、点选元素修改、版本 Diff 与源码 ZIP。
 
-**[在线体验](https://53bg3mbj.insforge.site) · [GitHub](https://github.com/nomorekuiqian/atoms-demo) · [验收记录](docs/RELEASE-2026-10-10.md)**
+**[在线体验](https://53bg3mbj.insforge.site) · [GitHub](https://github.com/nomorekuiqian/atoms-demo) · [增强版验收](docs/RELEASE-ENHANCED-2026-10-10.md) · [v1.0 基线](docs/RELEASE-2026-10-10.md)**
 
 登录页点击 **Try the demo account**，无需输入密码。共享体验账号中的修改对所有体验者可见；需要独立项目可自行注册。
 
@@ -62,7 +62,7 @@ npx -y @insforge/cli config apply
 | 变量 | 用途 |
 |---|---|
 | `NEXT_PUBLIC_INSFORGE_URL` / `NEXT_PUBLIC_INSFORGE_ANON_KEY` | 公开 SDK 配置；数据受 RLS 保护 |
-| `INSFORGE_API_KEY` | 服务端管理凭据，用于发布 / Discover / Remix |
+| `INSFORGE_API_KEY` | 服务端管理凭据，用于所有者校验后的原子提交、发布 / Discover / Remix |
 | `OPENROUTER_BASE_URL` / `OPENROUTER_API_KEY` | InsForge 网关或自有 OpenRouter；服务端专用 |
 | `OPENROUTER_CHAT_MODEL` | Alex；默认 Haiku 5.5 |
 | `OPENROUTER_FAST_MODEL` | Mike / Emma / Bob；默认 Haiku 5.5 |
@@ -101,8 +101,19 @@ node --env-file=.env.local scripts/check-publish.mjs http://localhost:3000
 | E6：5 个主题预设 | 已实现，Paper/Midnight 真实对照验证 |
 | M6：明暗、375px、加载/错误、断网重试 | 已检查，主站浏览器无未处理异常 |
 | M7：真实模型、3 个示例、文档、交付回归 | T1–T13 通过；完整证据见发布记录 |
+| M8：原子保存、幂等重试、并发版本冲突 | 隔离数据库故障注入及线上真实重放通过 |
+| M9：版本静态检查与预览观察 | 绑定版本/摘要/会话，发布重新核对快照 |
+| M10：文件引用与 Diff | 引用版本校验；按需比较前一版，不改历史 |
+| M11：源码 ZIP | 当前/历史版原始源码，所有者鉴权，运行说明 |
+| M12：点选元素 | 可移除上下文，排除输入值，真实模型修改验证 |
+| M13：原创头像、主题卡、空态、真实封面 | 深浅/375px/慢网/404 与线上资源通过 |
+| M14：增强交付 | T1–T21，真实完整链路；v1.1 附注标签记录 SHA/部署 |
 
-T1 首页、T2 注册、T3 连续三次真实生成、T4 Code、T5 迭代、T6 恢复、T7 修复、T8 发布复制、T9 匿名应用、T10 体验账号、T11 持久化、T12 用户隔离、T13 手机布局的逐项证据与边界在 [发布记录](docs/RELEASE-2026-10-10.md)。T3 三次为 22.4 / 25.5 / 23.2 秒。单测 62 项通过。
+T1 首页、T2 注册、T3 连续三次真实生成、T4 Code、T5 迭代、T6 恢复、T7 修复、T8 发布复制、T9 匿名应用、T10 体验账号、T11 持久化、T12 用户隔离、T13 手机布局的逐项证据与边界在 [发布记录](docs/RELEASE-2026-10-10.md)。T3 三次为 22.4 / 25.5 / 23.2 秒。本轮单测 **98 项**通过；增强版重新完成 T1–T13 真实链路，新建计数器到功能检查约 16.2 秒，详见[增强验收](docs/RELEASE-ENHANCED-2026-10-10.md)。
+
+![增强版：主题风格参考](docs/screenshots/theme-cards-1280.png)
+
+增强测试脚本接受 `APP_URL` 和 `PLAYWRIGHT_MODULE`（已安装的 Playwright 路径）。`check-version-diff.mjs`、`check-export.mjs`、`check-element-selection.mjs`、`check-visual-assets.mjs` 使用忽略目录内的私有 QA 会话；不要提交凭据。`check-release-flow.mjs` 新建隔离账号并调用真实模型四次，成功后清理项目、保留用量；目标必须已明确配置为真实模型。它不适合作为免费 CI 的每次运行测试。
 
 ## 关键取舍
 
@@ -120,6 +131,8 @@ T1 首页、T2 注册、T3 连续三次真实生成、T4 Code、T5 迭代、T6 �
 
 生成应用仅支持 HTML/CSS/JS，最多 6 文件；不支持 npm 构建或自定义后端。共享体验额度按账号计，不保证每个访客都有独立 10 次。2026-10-10 的验收已用满当天体验额度，2026-10-11 台北 08:00 重置；期间可以操作公开示例或注册独立账号。
 
-本轮未把新规划 M8–M14 标为完成。并发生成、事务化保存、完整请求幂等和数据库故障细分仍有工程边界；下一阶段按 [PLAN](docs/PLAN.md) 推进。源码 ZIP、版本 Diff、文件引用、元素选择与视觉素材属于后续范围。
+M8–M14 已完成。检查结果是静态检查与当前预览会话的观察，不能代替全部业务测试；动态导入和外部依赖仍有边界。元素位置是修改线索。源码 ZIP 不带托管存储数据；解压后用 HTTP 服务运行，外链仍需网络。
+
+后续优先级：先完善运行检查与外部资源兼容，再考虑动态作品分享卡及应用后端能力。可选小物件和背景纹理已取消，不增加无用途装饰。Google 登录已加入，真实账号完整授权尚需账号本人验收，见 [Google 登录](docs/GOOGLE-LOGIN.md)。
 
 干净克隆的安装、mock 启动与完整生成已验证。依赖审计仍有 9 项告警（6 high / 3 moderate，0 critical）；升级建议涉及 Next 16 / Tailwind 4，与本题固定栈冲突，未强制升级。详见验收记录。

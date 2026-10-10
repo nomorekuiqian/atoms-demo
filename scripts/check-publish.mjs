@@ -6,22 +6,23 @@ const app = process.argv[2] ?? "http://localhost:3000";
 const c = createClient({ baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL, anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY });
 const { data: s, error } = await c.auth.signInWithPassword({ email: process.env.DEMO_EMAIL, password: process.env.DEMO_PASSWORD });
 if (error) throw error;
+const checked = r => { if(r.error)throw new Error(r.error.message); return r.data; };
 const cookie = `insforge_access_token=${s.accessToken}`;
 const ok = (cond, label) => { console.log(`${cond ? "PASS" : "FAIL"}  ${label}`); if (!cond) process.exitCode = 1; };
 const api = (path, init = {}) => fetch(`${app}${path}`, { ...init, headers: { cookie, "content-type": "application/json", ...(init.headers ?? {}) } });
 
 async function projectWithVersion(n) {
-  const { data: p } = await c.database.from("projects").insert([{ title: `Publish check ${n}` }]).select("id").single();
+  const p = checked(await c.database.from("projects").insert([{ title: `Publish check ${n}` }]).select("id").single());
   const ids = [];
   for (let i = 1; i <= n; i++) {
-    const { data: v } = await c.database
+    const v = checked(await c.database
       .from("versions")
-      .insert([{ project_id: p.id, number: i, files: { "index.html": `<h1>v${i}</h1>` }, summary: `v${i}` }])
+      .insert([{ project_id: p.id, number: i, files: { "index.html": `<h1>ATOMS_SNAPSHOT_${i}_ONLY</h1>` }, summary: `v${i}` }])
       .select("id")
-      .single();
+      .single());
     ids.push(v.id);
   }
-  await c.database.from("projects").update({ current_version_id: ids[0] }).eq("id", p.id);
+  checked(await c.database.from("projects").update({ current_version_id: ids[0] }).eq("id", p.id));
   return { id: p.id, versions: ids };
 }
 
@@ -43,14 +44,14 @@ r = await api(`/api/slug-available?slug=${slug}&projectId=${b.id}`);
 ok((await r.json()).available === false, "availability check reports the slug as taken");
 
 let page = await (await fetch(`${app}/p/${slug}`)).text();
-ok(page.includes("v1"), "anonymous visitor sees v1");
+ok(page.includes("ATOMS_SNAPSHOT_1_ONLY"), "anonymous visitor sees v1");
 
-await c.database.from("projects").update({ current_version_id: a.versions[1] }).eq("id", a.id);
+checked(await c.database.from("projects").update({ current_version_id: a.versions[1] }).eq("id", a.id));
 page = await (await fetch(`${app}/p/${slug}`)).text();
-ok(page.includes("v1") && !page.includes("v2"), "a new version is not live until updated");
+ok(page.includes("ATOMS_SNAPSHOT_1_ONLY") && !page.includes("ATOMS_SNAPSHOT_2_ONLY"), "a new version is not live until updated");
 r = await api(`/api/projects/${a.id}/publish`, { method: "POST", body: JSON.stringify({versionId:a.versions[1]}) });
 page = await (await fetch(`${app}/p/${slug}`)).text();
-ok(r.status === 200 && page.includes("v2"), "update to latest serves v2");
+ok(r.status === 200 && page.includes("ATOMS_SNAPSHOT_2_ONLY"), "update to latest serves v2");
 
 r = await api(`/api/projects/${a.id}/publish`, { method: "DELETE" });
 const gone = await fetch(`${app}/p/${slug}`);
@@ -59,4 +60,4 @@ ok(r.status === 200 && gone.status === 404, `unpublished link → ${gone.status}
 const other = await fetch(`${app}/api/projects/${a.id}/publish`, { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
 ok(other.status === 401, `publish without a session → ${other.status}`);
 
-await c.database.from("projects").delete().in("id", [a.id, b.id]);
+checked(await c.database.from("projects").delete().in("id", [a.id, b.id]));
