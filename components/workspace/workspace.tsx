@@ -45,18 +45,21 @@ function readAppStorage(projectId: string): Record<string, string> {
 function useRun() {
   const controller = React.useRef<AbortController | null>(null);
   const store = useWorkspace;
+  type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean };
+  const lastRun = React.useRef<RunOptions | null>(null);
 
-  const run = React.useCallback(async (opts: { prompt: string | null; mode?: "build" | "fix"; errors?: string[] }) => {
+  const run = React.useCallback(async (opts: RunOptions) => {
     const s = store.getState();
     if (s.status !== "idle") return;
-    s.startRun(opts.prompt);
+    lastRun.current = opts;
+    s.startRun(opts.retry ? null : opts.prompt);
     const ctrl = new AbortController();
     controller.current = ctrl;
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors }),
+        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry }),
         signal: ctrl.signal,
       });
       if (!res.ok || !res.body) {
@@ -64,8 +67,12 @@ function useRun() {
         store.getState().finishRun({ error: body?.error ?? "Couldn't start the build. Try again." });
         return;
       }
-      for await (const e of readEvents<AgentEvent>(res.body)) store.getState().apply(e);
-      store.getState().finishRun();
+      let completed = false;
+      for await (const e of readEvents<AgentEvent>(res.body)) {
+        if (e.type === "done") completed = true;
+        store.getState().apply(e);
+      }
+      store.getState().finishRun(completed ? undefined : { error: "The connection dropped before the build finished. Try again." });
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") store.getState().finishRun({ stopped: true });
       else store.getState().finishRun({ error: "The connection dropped. Your last version is unchanged." });
@@ -79,7 +86,10 @@ function useRun() {
     controller.current?.abort();
   }, [store]);
 
-  return { run, stop };
+  const retry = React.useCallback(() => {
+    if (lastRun.current) return run({ ...lastRun.current, retry: true });
+  }, [run]);
+  return { run, stop, retry };
 }
 
 /* ───────────────────────────── versions ───────────────────────────── */
@@ -171,7 +181,7 @@ function Chat({
               {m.version && <VersionCard number={m.version.number} summary={m.version.summary} current={m.version.number === currentNumber} />}
             </div>
           ) : m.role === "user" ? (
-            <div key={m.id} className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-xl bg-surface-2 px-4 py-2.5 text-md text-ink">
+            <div key={m.id} className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-xl bg-surface-2 px-4 py-2.5 text-md text-ink">
               {m.content}
             </div>
           ) : (
@@ -289,7 +299,7 @@ function Preview() {
         title="App preview"
         srcDoc={srcDoc}
         sandbox="allow-scripts allow-forms allow-modals"
-        className={cn("block border-0 bg-[#ffffff]", device === "phone" ? "h-[760px] max-h-full w-[390px] rounded-lg border border-line shadow-md" : "h-full w-full")}
+        className={cn("block border-0 bg-[#ffffff]", device === "phone" ? "h-[760px] max-h-full w-[390px] max-w-full rounded-lg border border-line shadow-md" : "h-full w-full")}
       />
     </div>
   );
@@ -399,7 +409,7 @@ function AppPanel({
         )}
       </div>
       {viewing && tab !== "versions" && (
-        <div className="flex shrink-0 items-center gap-2 border-b bg-accent-soft px-3 py-2 text-base">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-accent-soft px-3 py-2 text-base">
           <span className="flex-1 text-accent-ink">Viewing v{viewing.number}. Your current version is unchanged.</span>
           <Button size="sm" variant="ghost" onClick={() => set({ viewing: null, previewNonce: useWorkspace.getState().previewNonce + 1 })}>
             Back to current
@@ -452,7 +462,7 @@ function AppPanel({
 export function Workspace({ initial, email, autostart }: { initial: WorkspaceInit; email: string; autostart: boolean }) {
   const params = useSearchParams();
   const [ready, setReady] = React.useState(false);
-  const { run, stop } = useRun();
+  const { run, stop, retry } = useRun();
   const { restore, view, busy } = useVersions();
   const title = useWorkspace((s) => s.title);
   const pane = useWorkspace((s) => s.pane);
@@ -492,7 +502,7 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
           </Link>
           <h1 className="min-w-0 truncate text-base font-medium text-ink">{title}</h1>
           {currentNumber && <span className="tabular hidden rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink-2 sm:inline">v{currentNumber}</span>}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <Tabs value={pane} onValueChange={(v) => set({ pane: v as "chat" | "app" })} className="md:hidden">
               <TabsList>
                 <TabsTrigger value="chat">Chat</TabsTrigger>
@@ -504,16 +514,16 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
           </div>
         </header>
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 px-2 pb-2 md:grid-cols-[minmax(360px,38%)_1fr]">
-          <div className={cn("min-h-0", pane === "chat" ? "block" : "hidden md:block")}>
+          <div className={cn("min-h-0 min-w-0", pane === "chat" ? "block" : "hidden md:block")}>
             <Chat
               onSend={(prompt) => void run({ prompt })}
               onStop={stop}
-              onRetry={() => void run({ prompt: null })}
+              onRetry={() => void retry()}
               onRestore={(id) => void restore(id)}
               restoring={busy}
             />
           </div>
-          <div className={cn("min-h-0", pane === "app" ? "block" : "hidden md:block")}>
+          <div className={cn("min-h-0 min-w-0", pane === "app" ? "block" : "hidden md:block")}>
             <AppPanel
               onResolve={(errors) => void run({ prompt: null, mode: "fix", errors })}
               onView={(id) => void view(id)}

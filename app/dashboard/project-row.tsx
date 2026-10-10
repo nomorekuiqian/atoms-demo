@@ -18,7 +18,7 @@ export type ProjectSummary = {
   version?: number | null;
 };
 
-export function ProjectRow({ project }: { project: ProjectSummary }) {
+export function ProjectRow({ project, renderedAt }: { project: ProjectSummary; renderedAt: number }) {
   const [editing, setEditing] = React.useState(false);
   const [title, setTitle] = React.useState(project.title);
   const [confirming, setConfirming] = React.useState(false);
@@ -76,7 +76,7 @@ export function ProjectRow({ project }: { project: ProjectSummary }) {
       {project.published_slug && (
         <span className="relative rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success">Published</span>
       )}
-      <span className="tabular hidden w-32 text-right text-sm text-ink-2 sm:block">{timeAgo(project.updated_at)}</span>
+      <span className="tabular hidden w-32 text-right text-sm text-ink-2 sm:block">{timeAgo(project.updated_at, renderedAt)}</span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative" aria-label={`Actions for ${title}`} disabled={pending}>

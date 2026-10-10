@@ -22,6 +22,8 @@ export default async function DashboardPage() {
     version: current?.number ?? null,
   }));
 
+  const renderedAt = Date.now();
+
   return (
     <div className="min-h-dvh">
       <SiteHeader email={user?.email}>
@@ -49,7 +51,7 @@ export default async function DashboardPage() {
           ) : (
             <ul>
               {projects.map((p) => (
-                <ProjectRow key={p.id} project={p} />
+                <ProjectRow key={p.id} project={p} renderedAt={renderedAt} />
               ))}
             </ul>
           )}

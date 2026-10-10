@@ -391,8 +391,8 @@ export function Specimen({
           <Section title="Projects">
             <div className="overflow-hidden rounded-lg border bg-surface shadow-sm">
               <ul>
-                <ProjectRow project={{ id: "00000000-0000-0000-0000-000000000001", title: "Pomodoro timer", updated_at: new Date(Date.now() - 4 * 60000).toISOString(), published_slug: "my-pomodoro", version: 3 }} />
-                <ProjectRow project={{ id: "00000000-0000-0000-0000-000000000002", title: "Expense tracker", updated_at: new Date(Date.now() - 26 * 3600000).toISOString(), published_slug: null, version: 1 }} />
+                <ProjectRow renderedAt={new Date("2026-10-10T00:00:00Z").getTime()} project={{ id: "00000000-0000-0000-0000-000000000001", title: "Pomodoro timer", updated_at: new Date(Date.now() - 4 * 60000).toISOString(), published_slug: "my-pomodoro", version: 3 }} />
+                <ProjectRow renderedAt={new Date("2026-10-10T00:00:00Z").getTime()} project={{ id: "00000000-0000-0000-0000-000000000002", title: "Expense tracker", updated_at: new Date(Date.now() - 26 * 3600000).toISOString(), published_slug: null, version: 1 }} />
               </ul>
             </div>
           </Section>

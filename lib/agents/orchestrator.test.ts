@@ -81,6 +81,14 @@ describe("runPipeline", () => {
     expect(events.at(-1)).toMatchObject({ type: "error", retryable: true });
   });
 
+  it("rejects a truncated run even when earlier files were complete", async () => {
+    const fx = { ...fixture, alex: '<file path="index.html"><script src="app.js"></script></file><file path="app.js">const unfinished =' };
+    const { events, result } = await run({}, fx);
+    expect(result.ok).toBe(false);
+    expect(result.written).toEqual({});
+    expect(events.at(-1)).toMatchObject({ type: "error", retryable: true });
+  });
+
   it("stops cleanly on abort and produces no version", async () => {
     const controller = new AbortController();
     const gen = runPipeline(

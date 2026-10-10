@@ -57,6 +57,7 @@ Output format, exactly:
 
 Rules:
 - index.html is the entry. Reference your own files with relative paths (<link rel="stylesheet" href="style.css">, <script src="app.js"></script>).
+- Keep implementations compact: target under 250 lines total and 6000 output tokens. Prioritize complete working behavior over verbose styling. Close every file tag before the response ends.
 - At most ${MAX_FILES} files in the project. Only .html, .css, .js, .json, .svg files.
 - When changing an existing app, output ONLY the files you change, each one complete. Files you do not output stay as they are.
 - External scripts/styles only from: ${ALLOWED_CDNS.join(", ")}. No other network requests, no API keys, no backend.

@@ -7,7 +7,7 @@ const c = createClient({ baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL, anonKey:
 const { data: s, error } = await c.auth.signInWithPassword({ email: process.env.DEMO_EMAIL, password: process.env.DEMO_PASSWORD });
 if (error) throw error;
 const cookie = `insforge_access_token=${s.accessToken}`;
-const ok = (cond, label) => console.log(`${cond ? "PASS" : "FAIL"}  ${label}`);
+const ok = (cond, label) => { console.log(`${cond ? "PASS" : "FAIL"}  ${label}`); if (!cond) process.exitCode = 1; };
 const api = (path, init = {}) => fetch(`${app}${path}`, { ...init, headers: { cookie, "content-type": "application/json", ...(init.headers ?? {}) } });
 
 async function projectWithVersion(n) {

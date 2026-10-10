@@ -17,7 +17,7 @@ async function user(tag) {
 
 const a = await user("a");
 const b = await user("b");
-const ok = (cond, label) => console.log(`${cond ? "PASS" : "FAIL"}  ${label}`);
+const ok = (cond, label) => { console.log(`${cond ? "PASS" : "FAIL"}  ${label}`); if (!cond) process.exitCode = 1; };
 
 const { data: proj, error } = await a.client.database.from("projects").insert([{ title: "A's secret" }]).select("id").single();
 if (error) throw error;
@@ -39,7 +39,8 @@ const del = await b.client.database.from("projects").delete().eq("id", proj.id).
 ok((del.data ?? []).length === 0, "B cannot delete A's project");
 
 const page = await fetch(`${app}/project/${proj.id}`, { headers: { cookie: `insforge_access_token=${b.token}` }, redirect: "manual" });
-ok(page.status === 404, `B gets 404 on /project/<A's id> (got ${page.status})`);
+const deniedHtml = await page.text();
+ok((page.status === 404 || deniedHtml.includes("NEXT_HTTP_ERROR_FALLBACK;404")) && !deniedHtml.includes("A&#x27;s secret") && !deniedHtml.includes("A’s secret"), `B receives not-found UI on A’s project (HTTP ${page.status}; streamed pages may use 200)`);
 const own = await fetch(`${app}/project/${proj.id}`, { headers: { cookie: `insforge_access_token=${a.token}` }, redirect: "manual" });
 ok(own.status === 200, `A gets 200 on own project (got ${own.status})`);
 

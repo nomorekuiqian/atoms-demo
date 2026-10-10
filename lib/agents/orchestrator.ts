@@ -208,8 +208,8 @@ export async function* runPipeline(
     // Only fully closed files count.
     const complete: Files = Object.fromEntries(done.map((p) => [p, written[p]]));
     const merged = mergeFiles(input.files, complete);
-    if (done.length === 0 || "error" in merged) {
-      const error = done.length === 0 ? "Alex didn't produce any files." : (merged as { error: string }).error;
+    if (invalid.length > 0 || done.length === 0 || "error" in merged) {
+      const error = invalid.length > 0 ? "Alex returned an incomplete or invalid file. Try a smaller change." : done.length === 0 ? "Alex didn't produce any files." : (merged as { error: string }).error;
       yield { type: "agent_end", agent: "alex", status: "failed" };
       agents.push({ agent: "alex", text: narration.trim(), status: "failed", files: done });
       yield { type: "error", message: `${error} Your last version is unchanged.`, retryable: true };

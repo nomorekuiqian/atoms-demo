@@ -28,7 +28,7 @@ function useSlugCheck(slug: string, projectId: string, enabled: boolean): Check 
         const body = await res.json();
         setCheck(body.available ? { state: "ok" } : { state: "bad", message: body.problem ?? "That link is taken." });
       } catch {
-        /* aborted or offline: the publish call validates again */
+        if (!ctrl.signal.aborted) setCheck({ state: "idle", message: "Connection unavailable. You can retry publishing." });
       }
     }, 300);
     return () => {
@@ -121,6 +121,8 @@ export function PublishDialog() {
       setDraft(suggestSlug(title));
       setJustPublished(false);
       toast("Unpublished. The link no longer works.");
+    } catch {
+      toast("Couldn't reach the server. Try again.");
     } finally {
       setBusy(null);
     }
@@ -197,7 +199,7 @@ export function PublishDialog() {
                 />
               </div>
               <FieldHint id="publish-slug-hint" error={check.state === "bad" || Boolean(error)}>
-                {error ?? (check.state === "bad" ? check.message : check.state === "ok" ? "Available." : "6–30 lowercase letters, numbers or hyphens.")}
+                {error ?? check.message ?? (check.state === "bad" ? check.message : check.state === "ok" ? "Available." : "6–30 lowercase letters, numbers or hyphens.")}
               </FieldHint>
             </div>
             <div className="mt-6 flex justify-end gap-2">

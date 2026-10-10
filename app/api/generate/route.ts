@@ -21,6 +21,7 @@ const bodySchema = z.object({
   projectId: z.string().uuid(),
   /** Omit to (re)answer the project's most recent user message: first run after creation, or retry. */
   prompt: z.string().trim().min(1).max(4000).optional(),
+  retry: z.boolean().default(false),
   mode: z.enum(["build", "fix"]).default("build"),
   errors: z.array(z.string().max(2000)).max(5).optional(),
   /** Dev only: save this run as fixtures/<record>.json (requires RECORD_FIXTURES=1). */
@@ -56,7 +57,10 @@ export async function POST(request: Request) {
   // The prompt: either new (saved now) or the last unanswered user message.
   const history = await loadHistory(db, body.projectId, 12);
   let prompt = body.prompt;
-  if (prompt) {
+  const lastUser = history.findLastIndex((m) => m.role === "user");
+  if (body.retry && prompt && lastUser >= 0 && history[lastUser].content === prompt) {
+    history.splice(lastUser);
+  } else if (prompt) {
     const { error } = await db.from("messages").insert([{ project_id: body.projectId, role: "user", content: prompt }]);
     if (error) return json(500, "Couldn't save your message.");
   } else if (body.mode === "fix") {
