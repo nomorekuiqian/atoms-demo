@@ -1,7 +1,11 @@
+import { createHash, randomUUID } from "node:crypto";
+import { insforgeAdmin } from "@/lib/insforge/admin";
+import type { RunReceipt } from "@/lib/agents/persist";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { FIXTURES } from "@/fixtures";
+import { isRunConflict } from "@/lib/agents/conflict";
 import { mergeFiles } from "@/lib/agents/merge";
 import { runPipeline } from "@/lib/agents/orchestrator";
 import { generationsToday, loadHistory, loadProjectState, persistRun } from "@/lib/agents/persist";
@@ -19,6 +23,8 @@ export const maxDuration = 300;
 
 const bodySchema = z.object({
   projectId: z.string().uuid(),
+  requestId: z.string().uuid(),
+  expectedVersionId: z.string().uuid().nullable(),
   /** Omit to (re)answer the project's most recent user message: first run after creation, or retry. */
   prompt: z.string().trim().min(1).max(4000).optional(),
   retry: z.boolean().default(false),
@@ -32,6 +38,13 @@ const bodySchema = z.object({
 const json = (status: number, message: string) => Response.json({ error: message }, { status });
 
 export async function POST(request: Request) {
+  try { return await generate(request); } catch (error) {
+    console.error("[generate preflight]", error);
+    return json(503, "Could not read your project. Nothing was generated. Please retry.");
+  }
+}
+
+async function generate(request: Request) {
   const env = serverEnv();
   const client = await insforgeServer();
   const { data: auth } = await client.auth.getCurrentUser();
@@ -47,26 +60,33 @@ export async function POST(request: Request) {
   if (!state) return json(404, "Project not found.");
 
   const mock = env.LLM_MOCK === "1";
+  const admin = insforgeAdmin().database;
+  const fingerprint = createHash("sha256").update(JSON.stringify({ projectId: body.projectId, expectedVersionId: body.expectedVersionId, prompt: body.prompt ?? null, mode: body.mode, errors: body.errors ?? [] })).digest("hex");
+  // Replays bypass quota and history reads, but never ownership or payload identity.
+  const { data: prior, error: priorError } = await admin.from("generation_requests").select("fingerprint, result, status").eq("id",body.requestId).eq("user_id",user.id).maybeSingle();
+  if (priorError) throw new Error(priorError.message);
+  if (prior && prior.fingerprint !== fingerprint) return json(409,"This request identifier belongs to different input.");
+  const replay = (receipt: RunReceipt) => {
+    const events: AgentEvent[] = [];
+    if (receipt.version && receipt.files) events.push({ type: "version_created", versionId: receipt.version.id, number: receipt.version.number, summary: receipt.version.summary, files: receipt.files });
+    events.push({type:"done"});
+    return new Response(events.map(e => `data: ${JSON.stringify(e)}\n\n`).join(""), {headers:{"Content-Type":"text/event-stream", "Cache-Control":"no-store"}});
+  };
+  if (prior?.status === "complete") {
+    const receipt = prior.result as RunReceipt;
+    if (receipt.version?.id !== state.currentVersionId) return json(409,"This request was saved, but a newer version exists. Reload the project.");
+    return replay(receipt);
+  }
+  if (state.currentVersionId !== body.expectedVersionId) return json(409,"The project changed. Reload before building.");
   if (!mock) {
     const limit = user.email === env.DEMO_EMAIL ? env.DAILY_LIMIT_DEMO : env.DAILY_LIMIT;
-    if ((await generationsToday(db)) >= limit) {
-      return json(429, `You've used today's ${limit} builds. Come back tomorrow${user.email === env.DEMO_EMAIL ? " or create your own account" : ""}.`);
-    }
+    if ((await generationsToday(db)) >= limit) return json(429, `You've used today's ${limit} builds. Come back tomorrow.`);
   }
-
-  // The prompt: either new (saved now) or the last unanswered user message.
   const history = await loadHistory(db, body.projectId, 12);
   let prompt = body.prompt;
-  const lastUser = history.findLastIndex((m) => m.role === "user");
-  if (body.retry && prompt && lastUser >= 0 && history[lastUser].content === prompt) {
-    history.splice(lastUser);
-  } else if (prompt) {
-    const { error } = await db.from("messages").insert([{ project_id: body.projectId, role: "user", content: prompt }]);
-    if (error) return json(500, "Couldn't save your message.");
-  } else if (body.mode === "fix") {
-    prompt = "Fix the runtime errors in the preview.";
-  } else {
-    const idx = history.findLastIndex((m) => m.role === "user");
+  if (!prompt && body.mode === "fix") prompt = "Fix the runtime errors in the preview.";
+  if (!prompt) {
+    const idx = history.findLastIndex(m => m.role === "user");
     if (idx === -1) return json(409, "Nothing to build.");
     prompt = history[idx].content;
     history.splice(idx);
@@ -89,6 +109,14 @@ export async function POST(request: Request) {
       llm = recorder;
     }
   }
+
+  const lease = randomUUID();
+  const { data: claim, error: claimError } = await admin.rpc("claim_generation", {
+    p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,
+  });
+  if (claimError) return json(isRunConflict(claimError) ? 409 : 503, isRunConflict(claimError) ? "This request is running or the project changed. Retry shortly, or reload the project." : "Could not start this request. Please retry.");
+  if ((claim as {conflict?:string})?.conflict) return json(409, (claim as {conflict:string}).conflict);
+  if ((claim as {cached?:RunReceipt})?.cached) return replay((claim as {cached:RunReceipt}).cached);
 
   const controller = new AbortController();
   request.signal.addEventListener("abort", () => controller.abort());
@@ -129,20 +157,21 @@ export async function POST(request: Request) {
           send(r.value);
         }
 
+        if (controller.signal.aborted) result.ok = false;
         const merged = result.ok ? mergeFiles(state.files, result.written) : null;
         const files = merged && "files" in merged ? merged.files : null;
-        const version = await persistRun(db, {
-          projectId: body.projectId,
-          previous: state.files,
-          previousNumber: state.currentNumber,
+        const receipt = await persistRun(admin, {
+          requestId: body.requestId, lease, prompt: body.prompt,
+          title: Object.keys(state.files).length === 0 ? result.title : undefined,
           merged: files,
           result,
           userId: user.id,
           mock,
         });
-        if (version) {
+        const version = receipt.version;
+        if (version && receipt.files) {
           const renamed = result.title && Object.keys(state.files).length === 0 ? result.title : undefined;
-          send({ type: "version_created", versionId: version.id, number: version.number, summary: result.summary, title: renamed });
+          send({ type: "version_created", versionId: version.id, number: version.number, summary: result.summary, title: renamed, files: receipt.files });
         }
 
         if (recorder && result.ok && body.record) {
@@ -151,7 +180,10 @@ export async function POST(request: Request) {
         }
       } catch (err) {
         console.error("[generate]", err);
-        send({ type: "error", message: "Couldn't save this run. Your last version is unchanged.", retryable: true });
+        const { error: releaseError } = await admin.from("generation_requests").update({status:"failed"}).eq("id",body.requestId).eq("lease",lease).eq("status","running");
+        if (releaseError) console.error("[generate release]", releaseError.message);
+        const conflict = err instanceof Error && isRunConflict(err);
+        send({ type: "error", message: conflict ? "The project changed while building. Reload before making another change." : "Couldn't confirm this run. Retry to recover its saved result.", retryable: !conflict });
       } finally {
         send({ type: "done" });
         clearInterval(ping);

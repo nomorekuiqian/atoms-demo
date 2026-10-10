@@ -170,14 +170,14 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
         });
         break;
       case "version_created": {
-        const files = { ...s.files, ...trimDraft(s.draft) };
+        const files = e.files;
         set({
           files,
           draft: {},
           viewing: null,
           title: e.title ?? s.title,
           currentVersionId: e.versionId,
-          versions: [{ id: e.versionId, number: e.number, summary: e.summary, created_at: new Date().toISOString() }, ...s.versions],
+          versions: [{ id: e.versionId, number: e.number, summary: e.summary, created_at: new Date().toISOString() }, ...s.versions.filter(v => v.id !== e.versionId)],
           messages: updateLast("alex", (m) => ({ ...m, version: { number: e.number, summary: e.summary } })),
           previewNonce: s.previewNonce + 1,
           console: [],
@@ -232,11 +232,6 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
       ],
     })),
 }));
-
-/** The orchestrator trims one leading/trailing newline from each file; mirror it client-side. */
-function trimDraft(draft: Files): Files {
-  return Object.fromEntries(Object.entries(draft).map(([p, c]) => [p, c.replace(/^\n/, "").replace(/\n$/, "")]));
-}
 
 /** Distinct runtime errors from the current preview load, most recent first (max 5). */
 export function selectIssues(s: { console: ConsoleEntry[] }): string[] {

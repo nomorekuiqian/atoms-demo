@@ -13,7 +13,7 @@ export type AgentEvent =
   | { type: "file_delta"; path: string; delta: string }
   | { type: "file_end"; path: string }
   | { type: "agent_end"; agent: AgentId; status: AgentRunStatus }
-  | { type: "version_created"; versionId: string; number: number; summary: string; title?: string }
+  | { type: "version_created"; versionId: string; number: number; summary: string; title?: string; files: Files }
   | { type: "error"; message: string; retryable: boolean }
   | { type: "done" };
 

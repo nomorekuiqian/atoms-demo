@@ -10,9 +10,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu } from "@/components/app/user-menu";
 import { Toaster } from "@/components/ui/toaster";
-import type { AgentEvent } from "@/lib/agents/types";
 import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
-import { readEvents } from "@/lib/sse/readEvents";
+import { readRun } from "@/lib/sse/readRun";
 import { insforgeBrowser } from "@/lib/insforge/client";
 import { toast } from "sonner";
 import { selectIssues, useWorkspace, type VersionRow, type WorkspaceInit } from "@/lib/store/workspace";
@@ -45,12 +44,13 @@ function readAppStorage(projectId: string): Record<string, string> {
 function useRun() {
   const controller = React.useRef<AbortController | null>(null);
   const store = useWorkspace;
-  type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean };
+  type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean; requestId?: string; expectedVersionId?: string | null };
   const lastRun = React.useRef<RunOptions | null>(null);
 
   const run = React.useCallback(async (opts: RunOptions) => {
     const s = store.getState();
     if (s.status !== "idle") return;
+    opts = { ...opts, requestId: opts.requestId ?? crypto.randomUUID(), expectedVersionId: opts.expectedVersionId === undefined ? s.currentVersionId : opts.expectedVersionId };
     lastRun.current = opts;
     s.startRun(opts.retry ? null : opts.prompt);
     const ctrl = new AbortController();
@@ -59,7 +59,7 @@ function useRun() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry }),
+        body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry, requestId: opts.requestId, expectedVersionId: opts.expectedVersionId }),
         signal: ctrl.signal,
       });
       if (!res.ok || !res.body) {
@@ -67,15 +67,11 @@ function useRun() {
         store.getState().finishRun({ error: body?.error ?? "Couldn't start the build. Try again." });
         return;
       }
-      let completed = false;
-      for await (const e of readEvents<AgentEvent>(res.body)) {
-        if (e.type === "done") completed = true;
-        store.getState().apply(e);
-      }
-      store.getState().finishRun(completed ? undefined : { error: "The connection dropped before the build finished. Try again." });
+      await readRun(res.body, e => store.getState().apply(e));
+      store.getState().finishRun();
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") store.getState().finishRun({ stopped: true });
-      else store.getState().finishRun({ error: "The connection dropped. Your last version is unchanged." });
+      else store.getState().finishRun({ error: "The connection dropped before confirmation. Try again to recover the result." });
     } finally {
       controller.current = null;
     }
@@ -105,7 +101,7 @@ function useVersions() {
       const res = await fetch(`/api/projects/${projectId}/restore`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ versionId }),
+        body: JSON.stringify({ versionId, expectedVersionId: useWorkspace.getState().currentVersionId }),
       });
       const body = await res.json();
       if (!res.ok) return toast(body.error ?? "Couldn't restore. Try again.");

@@ -43,11 +43,12 @@ export default async function ProjectPage({
   const user = await getCurrentUser();
   const db = (await insforgeServer()).database;
 
-  const { data: project } = await db
+  const { data: project, error: projectError } = await db
     .from("projects")
     .select("id, title, current_version_id, published_version_id, published_slug")
     .eq("id", id)
     .maybeSingle();
+  if (projectError) throw new Error("Could not load project. Please retry.");
   if (!project || !user) notFound();
 
   const [messages, versions, current] = await Promise.all([
@@ -60,8 +61,10 @@ export default async function ProjectPage({
     db.from("versions").select("id, number, summary, created_at").eq("project_id", id).order("number", { ascending: false }).limit(100),
     project.current_version_id
       ? db.from("versions").select("files").eq("id", project.current_version_id).maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
   ]);
+
+  if (messages.error || versions.error || current.error || (project.current_version_id && !current.data)) throw new Error("Could not load project history. Please retry.");
 
   return (
     <Suspense>

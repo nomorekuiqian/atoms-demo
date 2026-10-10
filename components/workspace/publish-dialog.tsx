@@ -26,6 +26,7 @@ function useSlugCheck(slug: string, projectId: string, enabled: boolean): Check 
       try {
         const res = await fetch(`/api/slug-available?slug=${encodeURIComponent(slug)}&projectId=${projectId}`, { signal: ctrl.signal });
         const body = await res.json();
+        if (!res.ok) throw new Error(body.error);
         setCheck(body.available ? { state: "ok" } : { state: "bad", message: body.problem ?? "That link is taken." });
       } catch {
         if (!ctrl.signal.aborted) setCheck({ state: "idle", message: "Connection unavailable. You can retry publishing." });

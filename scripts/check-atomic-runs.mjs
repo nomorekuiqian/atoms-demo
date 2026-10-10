@@ -1,0 +1,53 @@
+// Run against an isolated InsForge branch; creates and removes only its own test project.
+import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {createClient,createAdminClient} from '@insforge/sdk';
+const config=JSON.parse(await readFile(process.argv[2],'utf8'));
+const baseUrl=`https://${config.appkey}.${config.region}.insforge.app`;
+const admin=createAdminClient({baseUrl,apiKey:config.api_key}).database;
+const userClient=createClient({baseUrl,anonKey:config.api_key});
+const signup=await userClient.auth.signUp({email:`atomic-${Date.now()}@example.com`,password:`Test-${randomUUID()}!`});
+if(signup.error) throw new Error(signup.error.message);
+const user=signup.data.user.id;
+const project=await userClient.database.from('projects').insert([{title:'Atomic transaction acceptance'}]).select('id').single();
+if(project.error) throw new Error(project.error.message);
+const pid=project.data.id;
+const call=async(name,args)=>{const r=await admin.rpc(name,args);if(r.error) throw new Error(`${name}: ${r.error.message}`);return r.data;};
+const args=(id,lease,expected=null)=>({p_id:id,p_project:pid,p_user:user,p_expected:expected,p_fingerprint:id,p_lease:lease});
+const finish=(id,lease,messages=[])=>({p_id:id,p_user:user,p_lease:lease,p_files:{'index.html':'<!doctype html><h1>saved</h1>'},p_summary:'Saved',p_title:null,p_messages:messages,p_usage:{model:'test',input:1,output:2}});
+const read=async(table,columns='*')=>{const r=await admin.from(table).select(columns).eq(table==='projects'?'id':'project_id',pid);if(r.error)throw r.error;return r.data;};
+try {
+ const id=randomUUID(),lease=randomUUID();
+ await call('claim_generation',args(id,lease));
+ const denied=await userClient.database.rpc('finish_generation',finish(id,lease));
+ assert(denied.error,'browser must not invoke privileged commit');
+ const bad=await admin.rpc('finish_generation',finish(id,lease,[{role:'invalid-role',content:'injected failure'}]));
+ assert(bad.error);
+ assert.equal((await read('versions')).length,0);
+ assert.equal((await read('projects'))[0].current_version_id,null);
+ assert.equal((await read('usage_logs')).length,0);
+ console.log('PASS late message failure rolls back version, pointer and usage');
+ const receipt=await call('finish_generation',finish(id,lease,[{role:'user',content:'build'}]));
+ const again=await call('finish_generation',finish(id,lease));
+ assert.equal(receipt.version.id,again.version.id);
+ assert.equal((await read('versions')).length,1);
+ assert.equal((await read('usage_logs')).length,1);
+ const cached=await call('claim_generation',args(id,randomUUID()));
+ assert.equal(cached.cached.version.id,receipt.version.id);
+ console.log('PASS retries return original receipt without duplicate writes');
+ const a=randomUUID(),b=randomUUID(),al=randomUUID(),bl=randomUUID();
+ await call('claim_generation',args(a,al,receipt.version.id));
+ await call('claim_generation',args(b,bl,receipt.version.id));
+ const outcomes=await Promise.all([admin.rpc('finish_generation',finish(a,al)),admin.rpc('finish_generation',finish(b,bl))]);
+ assert.equal(outcomes.filter(r=>!r.error && !r.data?.conflict).length,1);
+ assert.equal(outcomes.filter(r=>r.data?.conflict?.includes('project changed')).length,1);
+ assert.equal((await read('versions')).length,2);
+ console.log('PASS concurrent saves commit one version and reject the stale writer');
+ const forged=await admin.rpc('claim_generation',{...args(randomUUID(),randomUUID()),p_user:randomUUID()});
+ assert(forged.error);
+ console.log('PASS ownership check and browser RPC denial');
+} finally {
+ const cleanup=await admin.from('projects').delete().eq('id',pid);
+ if(cleanup.error)throw new Error(cleanup.error.message);
+}

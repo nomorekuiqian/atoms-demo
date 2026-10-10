@@ -12,11 +12,12 @@ async function ownProject(id: string) {
   const client = await insforgeServer();
   const { data: auth } = await client.auth.getCurrentUser();
   if (!auth?.user) return { error: json(401, { error: "Sign in first." }) };
-  const { data } = await client.database
+  const { data, error } = await client.database
     .from("projects")
     .select("id, current_version_id, published_slug, published_version_id")
     .eq("id", id)
     .maybeSingle();
+  if (error) return { error: json(503, { error: "Could not read the project. Please retry." }) };
   if (!data) return { error: json(404, { error: "Project not found." }) };
   return { project: data as { id: string; current_version_id: string | null; published_slug: string | null; published_version_id: string | null } };
 }

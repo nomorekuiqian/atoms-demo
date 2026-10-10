@@ -12,7 +12,8 @@ export async function GET(request: Request) {
   const projectId = url.searchParams.get("projectId");
   const problem = slugProblem(slug);
   if (problem) return Response.json({ available: false, problem });
-  const { data } = await insforgeAdmin().database.from("projects").select("id").eq("published_slug", slug).maybeSingle();
+  const { data, error } = await insforgeAdmin().database.from("projects").select("id").eq("published_slug", slug).maybeSingle();
+  if (error) return Response.json({ error: "Could not check this link. Please retry." }, { status: 503 });
   const available = !data || data.id === projectId;
   return Response.json({ available, problem: available ? undefined : "That link is taken. Try another." });
 }
