@@ -19,15 +19,15 @@
 | 项目列表 | ✅ |
 | 多 Agent 流式生成 | ✅ |
 | 代码查看 + 实时预览 | ✅ |
-| 对话式迭代 | ⏳ |
-| 一键发布 | ⏳ |
+| 对话式迭代 | ✅ |
+| 一键发布 | ✅ |
 | 版本历史与回滚 | ⏳ |
 | Issue Report + Resolve | ⏳ |
 | Discover + Remix | ⏳ |
 
 ## 在线体验
 
-https://53bg3mbj.insforge.site （开发中：已可注册 / 体验账号登录、生成并预览应用；发布功能在 M4）
+https://53bg3mbj.insforge.site （P0 已完成：注册 / 体验账号、多 Agent 生成、预览、迭代、发布）
 
 ## 本地运行
 
@@ -48,4 +48,5 @@ npx @insforge/cli config apply
 
 ## 关键取舍
 
+- **发布页的隔离方式。** `/p/{slug}` 与主站同域，所以生成的应用永远跑在没有 `allow-same-origin` 的沙箱 iframe 里（opaque origin，读不到主站 cookie、调不了 `/api`）。沙箱里原生 `localStorage` 不可用，由外层页面注入一个 shim 并按项目 / 发布链接保存在访问者浏览器中。
 - **生成接口放在 Next.js Route Handler。** M0 在线上压测：`/api/stream-test` 连续 150 秒每秒推一条 SSE，逐条实时到达、没有断流或缓冲（2026-10-10），足够覆盖一次完整生成（≤ 120 秒）。不需要迁到 Edge Function / Compute。

@@ -1,1 +1,33 @@
-{ "buildPath": "code" }
+{
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-color",
+        "value": "#fff8f1",
+        "createdAt": "2026-10-10T04:48:46.674Z",
+        "reason": "Claude: stand-in generated app inside /design-preview specimen, not product chrome"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "96px",
+        "createdAt": "2026-10-10T04:48:46.686Z",
+        "reason": "Claude: stand-in generated app timer digits in /design-preview specimen"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#000",
+        "createdAt": "2026-10-10T04:48:46.696Z",
+        "reason": "Claude: mask-image alpha stop for .live-sweep in globals.css, never rendered as a colour"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0, 0, 0, 0.35)",
+        "createdAt": "2026-10-10T04:48:46.707Z",
+        "reason": "Claude: mask-image alpha stop for .live-sweep, never rendered as a colour"
+      }
+    ]
+  }
+}

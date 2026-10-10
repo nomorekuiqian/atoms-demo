@@ -3,12 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Monitor, RotateCw, Smartphone, SquareTerminal, X } from "lucide-react";
+import { ExternalLink, Monitor, RotateCw, Smartphone, SquareTerminal, X } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu } from "@/components/app/user-menu";
+import { Toaster } from "@/components/ui/toaster";
 import type { AgentEvent } from "@/lib/agents/types";
 import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
 import { readEvents } from "@/lib/sse/readEvents";
@@ -19,6 +20,7 @@ import { AgentMessage } from "./agent-message";
 import { CodeView } from "./code-view";
 import { Composer } from "./composer";
 import { Markdown } from "./markdown";
+import { PublishDialog } from "./publish-dialog";
 import { VersionCard } from "./version-card";
 import { VersionList } from "./version-list";
 import { WorkingProcess } from "./working-process";
@@ -292,6 +294,9 @@ function AppPanel() {
             <ToolButton label="Refresh" onClick={() => set({ previewNonce: useWorkspace.getState().previewNonce + 1, console: [] })}>
               <RotateCw />
             </ToolButton>
+            <ToolButton label="Open in new tab" onClick={() => window.open(`/preview/${useWorkspace.getState().projectId}`, "_blank", "noopener")}>
+              <ExternalLink />
+            </ToolButton>
             <span className="mx-1 h-4 w-px bg-line-strong" aria-hidden />
             <ToolButton label="Console" active={consoleOpen} onClick={() => set({ consoleOpen: !consoleOpen })}>
               <span className="relative">
@@ -375,6 +380,7 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
                 <TabsTrigger value="app">App</TabsTrigger>
               </TabsList>
             </Tabs>
+            <PublishDialog />
             <UserMenu email={email} />
           </div>
         </header>
@@ -391,6 +397,7 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
           </div>
         </div>
       </div>
+      <Toaster />
     </TooltipProvider>
   );
 }
