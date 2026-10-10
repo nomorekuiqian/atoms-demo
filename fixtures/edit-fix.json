@@ -1,0 +1,10 @@
+{
+  "name": "edit-fix",
+  "match": [
+    "fix-runtime-error"
+  ],
+  "mike": "",
+  "emma": "",
+  "bob": "",
+  "alex": "Removing any inline `onclick` reference to `skipSession` from `index.html`, since the button is already wired in `app.js` via `addEventListener`.\n\n<file path=\"index.html\">\n<!DOCTYPE html>\n<html lang=\"en\" data-mode=\"work\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Pomodoro Timer</title>\n  <link rel=\"stylesheet\" href=\"styles.css\">\n</head>\n<body>\n  <main class=\"app\" id=\"app\">\n    <p class=\"mode-label\" id=\"mode-label\" aria-live=\"polite\">Work session</p>\n\n    <div class=\"timer\" id=\"timer\" role=\"timer\" aria-label=\"Time remaining\">25:00</div>\n\n    <div class=\"controls\">\n      <button id=\"toggle-btn\" class=\"btn btn-primary\" type=\"button\">Start</button>\n      <button id=\"reset-btn\" class=\"btn btn-secondary\" type=\"button\">Reset</button>\n      <button id=\"skip-btn\" class=\"btn btn-secondary\" type=\"button\">Skip</button>\n    </div>\n\n    <section class=\"counter\" aria-labelledby=\"counter-label\">\n      <span class=\"counter-label\" id=\"counter-label\">Work sessions completed today</span>\n      <strong class=\"counter-value\" id=\"count\">0</strong>\n    </section>\n  </main>\n  <script src=\"app.js\"></script>\n</body>\n</html>\n</file>\n\n<summary>Remove inline skipSession handler; use listener wiring</summary>"
+}
