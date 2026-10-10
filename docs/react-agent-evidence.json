@@ -578,5 +578,155 @@
       "Replay does not start another agent": true
     },
     "cleanedUp": true
+  },
+  "apiReal": {
+    "createdAt": "2026-10-10T08:36:02.128Z",
+    "app": "https://53bg3mbj.insforge.site",
+    "checks": {
+      "Generation HTTP 200": true,
+      "No generation error": true,
+      "Version created": true,
+      "Tool activity streamed": true,
+      "Version contract persisted": true,
+      "Saved snapshot static checks pass": true,
+      "Messages readable through owner RLS": true,
+      "mike independent trace persisted": true,
+      "mike trace restored for UI": true,
+      "emma independent trace persisted": true,
+      "emma trace restored for UI": true,
+      "bob independent trace persisted": true,
+      "bob trace restored for UI": true,
+      "alex independent trace persisted": true,
+      "alex trace restored for UI": true,
+      "Idempotent replay HTTP success": true,
+      "Replay returns same version": true,
+      "Replay does not start another agent": true
+    },
+    "cleanedUp": true,
+    "traces": [
+      {
+        "role": "mike",
+        "trace": [
+          {
+            "id": "toolu_01GPtroodwCficfG1cqNhMN1",
+            "step": 1,
+            "tool": "inspectProject",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01EoN68hHu7EgGr1iLHZUUig",
+            "step": 2,
+            "tool": "defineRequirements",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01KoPjAW7PnaRhsbo2HoxK2F",
+            "step": 3,
+            "tool": "planArchitecture",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01C4L6Zd6rBpBXxMWs2MnVAq",
+            "step": 4,
+            "tool": "buildApp",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01NCmg3Jf8jVGaznDy7pNquM",
+            "step": 5,
+            "tool": "finishTask",
+            "status": "done"
+          }
+        ]
+      },
+      {
+        "role": "emma",
+        "trace": [
+          {
+            "id": "toolu_01HyYJ4CgpYHg1HARDJdoB17",
+            "step": 1,
+            "tool": "inspectProject",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01KgJE24LPMiAWdgRvzdnbC7",
+            "step": 2,
+            "tool": "validateRequirements",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01NGmPCbtwuLurntZ4QbMyop",
+            "step": 3,
+            "tool": "submitRequirements",
+            "status": "done"
+          }
+        ]
+      },
+      {
+        "role": "bob",
+        "trace": [
+          {
+            "id": "toolu_019Gtn2M2wVXbf4WDq8wNbgn",
+            "step": 1,
+            "tool": "inspectProject",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01CS9TntpSoohDMniWvFfXrf",
+            "step": 2,
+            "tool": "validatePlan",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01Eoa3T3zMvKdakvD4LDRfuD",
+            "step": 3,
+            "tool": "submitPlan",
+            "status": "done"
+          }
+        ]
+      },
+      {
+        "role": "alex",
+        "trace": [
+          {
+            "id": "toolu_011Q18eZg5HijcpHzCF3rvvQ",
+            "step": 1,
+            "tool": "inspectProject",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01Ksx8yVowoTC9cwPW1nJ6Nf",
+            "step": 2,
+            "tool": "writeFile",
+            "status": "done"
+          },
+          {
+            "id": "toolu_016L8kJDWbU799percNDdgoM",
+            "step": 3,
+            "tool": "writeFile",
+            "status": "done"
+          },
+          {
+            "id": "toolu_01FEHLwmaezVgqrEcsrQvoPh",
+            "step": 4,
+            "tool": "checkApp",
+            "status": "done"
+          },
+          {
+            "id": "toolu_016uBEiALvwnyQQkvUNy3LoE",
+            "step": 5,
+            "tool": "finishBuild",
+            "status": "done"
+          }
+        ]
+      }
+    ]
+  },
+  "deployment": {
+    "id": "11cc9946-fb1a-4fdd-a1b1-e0e1d9d7abd0",
+    "status": "READY",
+    "url": "https://53bg3mbj.insforge.site",
+    "runtimeCommit": "29addfdbf14cb86949f25d4fe6b81179174fb822",
+    "ci": "https://github.com/nomorekuiqian/atoms-demo/actions/runs/38038347688"
   }
 }

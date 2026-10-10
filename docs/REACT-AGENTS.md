@@ -56,3 +56,14 @@ node --env-file=.env.local scripts/check-react-api.mjs --app https://53bg3mbj.in
 ```
 
 默认模型来自已有环境变量；不需要 Vercel AI Gateway，也没有改动平台或应用的发布权限。旧 `record` 参数现在明确返回 400，避免把多步工具循环误存成旧单轮文本 fixture。
+
+## 部署后验证
+
+- 运行时代码：`29addfdbf14cb86949f25d4fe6b81179174fb822`。
+- InsForge deployment：`11cc9946-fb1a-4fdd-a1b1-e0e1d9d7abd0`，READY。
+- 地址：https://53bg3mbj.insforge.site
+- [GitHub CI](https://github.com/nomorekuiqian/atoms-demo/actions/runs/38038347688)：success，包含 Node 22 下的类型/lint/测试/build。
+- 使用已有 QA 账号通过生产 `/api/generate` 发起真实模型请求：四角色成功、工具事件 SSE、版本与契约持久化、四角色轨迹恢复、同请求重放同版本且没有新 Agent 调用全部通过。请求完成后删除本次 QA 项目；没有发布该测试应用。
+- 本地 QA 服务已停止。无数据库 schema/auth/RLS 变更。
+
+生产接口成功证明新运行时在部署环境可执行与保存，不代表该生成应用的浏览器行为已经验收。
