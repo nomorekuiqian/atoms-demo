@@ -441,8 +441,8 @@ create policy own_messages on messages for all
 | M0 | 0.75h | ≈0.6h | <$0.001（网关 ping） | 站点 200、150s 流式、RLS、CI | G1：✅ 150 条事件逐秒实时到达，生成接口留在 Route Handler |
 | D0 | 0.5h | ≈1.2h | $0 | 样张 light/dark/375 截图、detector 0 findings、reviewer 两轮 | 用户否决首轮方向，改 OpenAI/Atoms 风格 |
 | M1 | 1h | ≈0.5h | $0 | 未登录→登录→自动建项目、重命名持久化、RLS 9/9（scripts/check-rls.mjs） | 用 server actions 代替 /api/projects 路由 |
-| M2 | 1.5h | | | | |
-| M3 | 1.5h | | | | |
+| M2 | 1.5h | ≈1h | ≈$0.04（Haiku 录 5 个 fixture） | 47 单测；mock/真实冒烟；中止不写版本；429；线上冒烟 | Mike 改为流式 header；fixture 是按 agent 的原始输出（JSON），不是事件流 |
+| M3 | 1.5h | ≈1h | $0 | T3（mock）、T4、Console 报错、Stop、刷新恢复、375 Chat/App | sandbox 下 localStorage 不可用 → 注入 shim 并由父页按项目持久化 |
 | M4 | 0.75h | | | | G3： |
 | M5 | 1h | | | | |
 | M6 | 0.5h | | | | |

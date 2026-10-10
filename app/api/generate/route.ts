@@ -19,7 +19,7 @@ export const maxDuration = 300;
 
 const bodySchema = z.object({
   projectId: z.string().uuid(),
-  /** Omit to answer the project's last unanswered user message (first run after creation). */
+  /** Omit to (re)answer the project's most recent user message: first run after creation, or retry. */
   prompt: z.string().trim().min(1).max(4000).optional(),
   mode: z.enum(["build", "fix"]).default("build"),
   errors: z.array(z.string().max(2000)).max(5).optional(),
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   // The prompt: either new (saved now) or the last unanswered user message.
-  const history = await loadHistory(db, body.projectId, 7);
+  const history = await loadHistory(db, body.projectId, 12);
   let prompt = body.prompt;
   if (prompt) {
     const { error } = await db.from("messages").insert([{ project_id: body.projectId, role: "user", content: prompt }]);
@@ -62,10 +62,10 @@ export async function POST(request: Request) {
   } else if (body.mode === "fix") {
     prompt = "Fix the runtime errors in the preview.";
   } else {
-    const last = history.at(-1);
-    if (!last || last.role !== "user") return json(409, "Nothing to build.");
-    prompt = last.content;
-    history.pop();
+    const idx = history.findLastIndex((m) => m.role === "user");
+    if (idx === -1) return json(409, "Nothing to build.");
+    prompt = history[idx].content;
+    history.splice(idx);
   }
   const turns: ChatTurn[] = history
     .filter((m) => ["user", "mike", "emma", "bob", "alex"].includes(m.role))
@@ -136,7 +136,10 @@ export async function POST(request: Request) {
           userId: user.id,
           mock,
         });
-        if (version) send({ type: "version_created", versionId: version.id, number: version.number, summary: result.summary });
+        if (version) {
+          const renamed = result.title && Object.keys(state.files).length === 0 ? result.title : undefined;
+          send({ type: "version_created", versionId: version.id, number: version.number, summary: result.summary, title: renamed });
+        }
 
         if (recorder && result.ok && body.record) {
           const fixture = toFixture(body.record, body.match ?? [], recorder.recorded);

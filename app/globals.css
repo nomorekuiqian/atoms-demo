@@ -163,3 +163,37 @@
     }
   }
 }
+
+/* Shiki output in the Code tab: theme colours come from CSS variables, line numbers from counters. */
+@layer components {
+  .code-shiki pre {
+    background: transparent !important;
+    margin: 0;
+    padding: 12px 0;
+  }
+  .code-shiki code {
+    counter-reset: line;
+    display: grid;
+  }
+  .code-shiki .line {
+    padding-right: 24px;
+    min-height: 20px;
+  }
+  .code-shiki .line::before {
+    counter-increment: line;
+    content: counter(line);
+    display: inline-block;
+    width: 3.5em;
+    padding-right: 1em;
+    text-align: right;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+  .code-shiki span {
+    color: var(--shiki-light);
+  }
+  .dark .code-shiki span {
+    color: var(--shiki-dark);
+  }
+}

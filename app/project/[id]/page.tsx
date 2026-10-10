@@ -1,34 +1,85 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { insforgeServer } from "@/lib/insforge/server";
+import { Workspace } from "@/components/workspace/workspace";
+import type { AgentId } from "@/lib/agents/meta";
+import type { Files } from "@/lib/agents/types";
+import { getCurrentUser, insforgeServer } from "@/lib/insforge/server";
+import type { UIMessage, VersionRow } from "@/lib/store/workspace";
 
 export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Placeholder until the workspace lands in M3.
-export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+type MessageRow = {
+  id: string;
+  role: "user" | AgentId | "system";
+  content: string;
+  meta: { status?: string; files?: string[] } | null;
+  version: { number: number; summary: string | null } | null;
+};
+
+function toUIMessage(m: MessageRow): UIMessage {
+  const status = (m.meta?.status ?? "done") as UIMessage["status"];
+  return {
+    id: m.id,
+    role: m.role as UIMessage["role"],
+    content: m.content,
+    status: status === "thinking" || status === "working" ? "stopped" : status,
+    steps: (m.meta?.files ?? []).map((path) => ({ kind: "tool" as const, action: "Write" as const, path, status: status === "failed" ? "failed" : "done" })),
+    version: m.version ? { number: m.version.number, summary: m.version.summary ?? `Version ${m.version.number}` } : undefined,
+  };
+}
+
+export default async function ProjectPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ autostart?: string }>;
+}) {
   const { id } = await params;
+  const { autostart } = await searchParams;
   if (!UUID.test(id)) notFound();
+  const user = await getCurrentUser();
   const db = (await insforgeServer()).database;
-  const { data: project } = await db.from("projects").select("id, title").eq("id", id).maybeSingle();
-  if (!project) notFound();
-  const { data: messages } = await db
-    .from("messages")
-    .select("id, role, content")
-    .eq("project_id", id)
-    .order("created_at", { ascending: true });
+
+  const { data: project } = await db
+    .from("projects")
+    .select("id, title, current_version_id, published_version_id, published_slug")
+    .eq("id", id)
+    .maybeSingle();
+  if (!project || !user) notFound();
+
+  const [messages, versions, current] = await Promise.all([
+    db
+      .from("messages")
+      .select("id, role, content, meta, version:versions(number, summary)")
+      .eq("project_id", id)
+      .neq("role", "system")
+      .order("created_at", { ascending: true })
+      .limit(300),
+    db.from("versions").select("id, number, summary, created_at").eq("project_id", id).order("number", { ascending: false }).limit(100),
+    project.current_version_id
+      ? db.from("versions").select("files").eq("id", project.current_version_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   return (
-    <main className="mx-auto max-w-[720px] px-4 py-10">
-      <h1 className="text-2xl font-semibold">{project.title}</h1>
-      <ul className="mt-6 space-y-3">
-        {(messages ?? []).map((m) => (
-          <li key={m.id} className="text-md">
-            <span className="text-ink-2">{m.role}: </span>
-            {m.content}
-          </li>
-        ))}
-      </ul>
-    </main>
+    <Suspense>
+      <Workspace
+        email={user.email}
+        autostart={autostart === "1"}
+        initial={{
+          projectId: project.id,
+          title: project.title,
+          messages: ((messages.data ?? []) as unknown as MessageRow[]).map(toUIMessage),
+          files: ((current.data as { files?: Files } | null)?.files ?? {}) as Files,
+          versions: ((versions.data ?? []) as VersionRow[]).map((v) => ({ ...v, summary: v.summary ?? `Version ${v.number}` })),
+          currentVersionId: project.current_version_id,
+          publishedVersionId: project.published_version_id,
+          publishedSlug: project.published_slug,
+        }}
+      />
+    </Suspense>
   );
 }

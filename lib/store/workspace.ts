@@ -1,0 +1,213 @@
+"use client";
+
+import { create } from "zustand";
+import type { AgentId } from "@/lib/agents/meta";
+import type { AgentEvent, Files } from "@/lib/agents/types";
+import type { Step } from "@/components/workspace/working-process";
+
+export type MessageStatus = "thinking" | "working" | "done" | "stopped" | "failed";
+
+export type UIMessage = {
+  id: string;
+  role: "user" | AgentId;
+  content: string;
+  status: MessageStatus;
+  activity?: string;
+  steps: Step[];
+  version?: { number: number; summary: string };
+};
+
+export type VersionRow = { id: string; number: number; summary: string; created_at: string };
+
+export type ConsoleEntry = { id: number; level: "log" | "info" | "warn" | "error" | "debug"; text: string };
+
+export type WorkspaceInit = {
+  projectId: string;
+  title: string;
+  messages: UIMessage[];
+  files: Files;
+  versions: VersionRow[];
+  currentVersionId: string | null;
+  publishedVersionId: string | null;
+  publishedSlug: string | null;
+};
+
+type State = WorkspaceInit & {
+  status: "idle" | "streaming" | "stopping";
+  /** Files Alex is writing in the current run; merged into `files` when a version is created. */
+  draft: Files;
+  writing: string | null;
+  tab: "preview" | "code" | "versions";
+  pane: "chat" | "app";
+  activeFile: string | null;
+  device: "desktop" | "phone";
+  previewNonce: number;
+  console: ConsoleEntry[];
+  consoleOpen: boolean;
+  runError: { message: string; retryable: boolean } | null;
+  lastPrompt: string | null;
+};
+
+type Actions = {
+  init: (data: WorkspaceInit) => void;
+  set: (patch: Partial<State>) => void;
+  startRun: (prompt: string | null) => void;
+  apply: (e: AgentEvent) => void;
+  finishRun: (opts?: { stopped?: boolean; error?: string }) => void;
+  log: (entry: Omit<ConsoleEntry, "id">) => void;
+};
+
+let consoleId = 0;
+let localId = 0;
+const tempId = () => `local-${++localId}`;
+
+export const useWorkspace = create<State & Actions>((set, get) => ({
+  projectId: "",
+  title: "",
+  messages: [],
+  files: {},
+  versions: [],
+  currentVersionId: null,
+  publishedVersionId: null,
+  publishedSlug: null,
+  status: "idle",
+  draft: {},
+  writing: null,
+  tab: "preview",
+  pane: "chat",
+  activeFile: null,
+  device: "desktop",
+  previewNonce: 0,
+  console: [],
+  consoleOpen: false,
+  runError: null,
+  lastPrompt: null,
+
+  init: (data) =>
+    set({
+      ...data,
+      status: "idle",
+      draft: {},
+      writing: null,
+      tab: "preview",
+      pane: "chat",
+      activeFile: Object.keys(data.files)[0] ?? null,
+      console: [],
+      runError: null,
+    }),
+
+  set: (patch) => set(patch),
+
+  startRun: (prompt) =>
+    set((s) => ({
+      status: "streaming",
+      draft: {},
+      writing: null,
+      runError: null,
+      lastPrompt: prompt ?? s.lastPrompt,
+      messages: prompt ? [...s.messages, { id: tempId(), role: "user", content: prompt, status: "done", steps: [] }] : s.messages,
+    })),
+
+  apply: (e) => {
+    const s = get();
+    const updateLast = (agent: AgentId, fn: (m: UIMessage) => UIMessage) => {
+      const idx = s.messages.findLastIndex((m) => m.role === agent);
+      if (idx === -1) return s.messages;
+      const next = s.messages.slice();
+      next[idx] = fn(next[idx]);
+      return next;
+    };
+    switch (e.type) {
+      case "agent_start":
+        set({
+          messages: [...s.messages, { id: tempId(), role: e.agent, content: "", status: "thinking", activity: e.activity, steps: [] }],
+        });
+        break;
+      case "text_delta":
+        set({ messages: updateLast(e.agent, (m) => ({ ...m, content: m.content + e.delta })) });
+        break;
+      case "file_start":
+        set({
+          draft: { ...s.draft, [e.path]: "" },
+          writing: e.path,
+          activeFile: s.tab === "code" ? e.path : s.activeFile,
+          messages: updateLast("alex", (m) => ({
+            ...m,
+            status: "working",
+            activity: `Writing ${e.path}`,
+            steps: [...m.steps, { kind: "tool", action: "Write", path: e.path, status: "running" }],
+          })),
+        });
+        break;
+      case "file_delta":
+        set({ draft: { ...s.draft, [e.path]: (s.draft[e.path] ?? "") + e.delta } });
+        break;
+      case "file_end":
+        set({
+          writing: null,
+          messages: updateLast("alex", (m) => ({
+            ...m,
+            steps: m.steps.map((st) => (st.kind === "tool" && st.path === e.path && st.status === "running" ? { ...st, status: "done" } : st)),
+          })),
+        });
+        break;
+      case "agent_end":
+        set({
+          messages: updateLast(e.agent, (m) => ({
+            ...m,
+            status: e.status,
+            activity: undefined,
+            steps: m.steps.map((st) => (st.kind === "tool" && st.status === "running" ? { ...st, status: e.status === "done" ? "done" : "failed" } : st)),
+          })),
+        });
+        break;
+      case "version_created": {
+        const files = { ...s.files, ...trimDraft(s.draft) };
+        set({
+          files,
+          draft: {},
+          title: e.title ?? s.title,
+          currentVersionId: e.versionId,
+          versions: [{ id: e.versionId, number: e.number, summary: e.summary, created_at: new Date().toISOString() }, ...s.versions],
+          messages: updateLast("alex", (m) => ({ ...m, version: { number: e.number, summary: e.summary } })),
+          previewNonce: s.previewNonce + 1,
+          console: [],
+          tab: s.tab === "code" ? "code" : "preview",
+          pane: "app",
+        });
+        break;
+      }
+      case "error":
+        set({ runError: { message: e.message, retryable: e.retryable } });
+        break;
+      case "done":
+        break;
+    }
+  },
+
+  finishRun: (opts) =>
+    set((s) => ({
+      status: "idle",
+      writing: null,
+      draft: {},
+      runError: opts?.error ? { message: opts.error, retryable: true } : s.runError,
+      // Anything still live when the stream ends was cut off: settle its status and running steps.
+      messages: s.messages.map((m) =>
+        m.status === "thinking" || m.status === "working" || m.steps.some((st) => st.kind === "tool" && st.status === "running")
+          ? {
+              ...m,
+              status: m.status === "thinking" || m.status === "working" ? (opts?.stopped ? "stopped" : "failed") : m.status,
+              activity: undefined,
+              steps: m.steps.map((st) => (st.kind === "tool" && st.status === "running" ? { ...st, status: "failed" } : st)),
+            }
+          : m,
+      ),
+    })),
+
+  log: (entry) => set((s) => ({ console: [...s.console.slice(-199), { ...entry, id: ++consoleId }] })),
+}));
+
+/** The orchestrator trims one leading/trailing newline from each file; mirror it client-side. */
+function trimDraft(draft: Files): Files {
+  return Object.fromEntries(Object.entries(draft).map(([p, c]) => [p, c.replace(/^\n/, "").replace(/\n$/, "")]));
+}

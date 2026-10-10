@@ -19,7 +19,7 @@ export function VersionCard({
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-base font-medium text-ink">{summary}</p>
-        <p className="text-sm text-ink-2">{current ? "Current version" : `Version ${number}`}</p>
+        {current && <p className="text-sm text-ink-2">Current version</p>}
       </div>
       {!current && onRestore && (
         <Button variant="ghost" size="sm" onClick={onRestore}>
