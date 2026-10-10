@@ -11,7 +11,8 @@ Atoms-style AI app builder: a multi-agent pipeline (Mike → Emma → Bob → Al
 - Next.js 15 App Router + TypeScript, Tailwind CSS **3.4**, shadcn/ui, Zustand
 - InsForge for DB / Auth / RLS / Model Gateway / hosting (Sites)
   - Browser & SSR: `@insforge/sdk`, `@insforge/sdk/ssr`; privileged server code: `createAdminClient({ apiKey })`
-  - LLM calls: `openai` SDK pointed at OpenRouter (`OPENROUTER_API_KEY`, server-side only)
+  - LLM calls: `openai` SDK pointed at the InsForge Model Gateway (OpenAI-compatible, routes to OpenRouter) via `OPENROUTER_BASE_URL` + `OPENROUTER_API_KEY`, server-side only; switching to a self-owned OpenRouter key only changes those two env vars
+  - Dev uses `LLM_MOCK=1` (replays `fixtures/*.jsonl`) to save AI credit; see docs/PLAN.md
 - Vitest for unit tests
 
 ## Rules

@@ -409,6 +409,8 @@ create table usage_logs (                  -- 限流 & 成本观测
 
 ### 6.1 里程碑与验收标准
 
+> 逐项任务拆解、决策关口和可执行的验收清单见 [PLAN.md](PLAN.md)（M0–M7，与下表一一对应，时间分配略有调整）。
+
 | 时段 | 里程碑 | 内容 | 完成标准（DoD） | Commit |
 |---|---|---|---|---|
 | H0 (0.75h) | 脚手架 + 上线 | `insforge create`/`link` → `create-next-app` + Tailwind 3.4 + shadcn → `db migrations` 建表 + RLS → `config apply` 关邮箱验证 → `ai setup` → `deployments env set` → `deployments deploy .`；**90 秒流式压测接口** | 线上 `*.insforge.site` 可访问；压测结论写入 README；CI 绿 | `chore: scaffold` |
