@@ -456,6 +456,8 @@ One grammar for state changes: 180ms with the out curve `cubic-bezier(0.16, 1, 0
 
 ## Enhanced workspace and visual assets (2026-10-10)
 
+Homepage illustration (user-approved addition, 2026-10-10): an original matte clay still life of a terracotta timer, ivory app canvas, sage building blocks and powder-blue arch sits above the existing headline. Color is contained within the artwork; navigation, typography and composer keep the Quiet Studio palette. The transparent WebP has reserved dimensions, empty alt text and no motion. At phone widths it occupies 280 × 160px; desktop 385 × 220px. Source and prompt live in `design-assets/home/v1/`.
+
 Version comparison stays inside the existing Versions panel: complete summary, version selector, file counts and a collapsed per-file diff. Export names the snapshot version. Selection uses the Iris highlight only inside the sandbox; its injected helper cannot inherit parent CSS variables. Selected context is a removable chip with a clear dynamic-DOM limitation.
 
 AgentAvatar consumes 96px transparent WebP at fixed 24/32px, empty alt beside real role labels, with the existing letter visible until load or after failure. Original artwork and prompts are separate from public derivatives. The five theme miniatures use the single THEMES palette/font/radius mapping and real DOM text inside keyboard-selectable menu items; they are style references, not promised pixel output. Empty preview artwork is decorative, 180px, absent for errors and existing apps. Discover uses a real screenshot only when project and published version match its manifest; screenshot failure leaves a text fallback.

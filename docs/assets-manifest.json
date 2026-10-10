@@ -207,5 +207,27 @@
     "deploymentId": "5284ea9a-17c4-4efb-9000-82dacbbccb82",
     "verifiedAt": "2026-10-10",
     "acceptanceRecord": "docs/ENHANCEMENTS-2026-10-10.md"
+  },
+  {
+    "id": "build-still-life",
+    "version": 1,
+    "status": "integrated",
+    "sourcePath": "design-assets/home/v1/build-still-life.png",
+    "outputPath": "public/assets/illustrations/build-still-life-v1.webp",
+    "promptPath": "design-assets/home/v1/prompt.md",
+    "referenceAssetIds": [],
+    "generatedAt": "2026-10-10",
+    "tool": "built-in image_gen",
+    "model": "unknown",
+    "width": 840,
+    "height": 480,
+    "bytes": 28126,
+    "alpha": true,
+    "sha256": "4bd325fcfb5c99e4da457f16848b80d21d82549f364cc1a6c753c7cbcdcf2f2e",
+    "purpose": "Decorative homepage app-building still life",
+    "surface": "Homepage above headline",
+    "originality": "Original generated artwork; no external references.",
+    "deploymentUrl": null,
+    "deploymentId": null
   }
 ]
