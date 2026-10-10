@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js / build output
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# testing
+coverage/
+
+# env & secrets (only .env.example is committed)
+.env
+.env*.local
+.env.production
+.env.development
+
+# InsForge local link state
+.insforge/
+
+# deploy
+.vercel/
+
+# logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+
+# editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# local agent state
+.claude/settings.local.json
