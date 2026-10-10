@@ -56,7 +56,7 @@ type RpcDb = { rpc: (name: string, args: Record<string, unknown>) => PromiseLike
 /** One database transaction owns the snapshot, pointer, messages and usage. */
 export async function persistRun(db: RpcDb, opts: {
   requestId: string; lease: string; userId: string; merged: Files | null;
-  result: PipelineResult; mock: boolean; separateUsage?: boolean; prompt?: string; title?: string; references?: FileReference[]; element?:ElementContext;
+  result: PipelineResult; separateUsage?: boolean; prompt?: string; title?: string; references?: FileReference[]; element?:ElementContext;
 }): Promise<RunReceipt> {
   const { result } = opts;
   const messages = [
@@ -68,7 +68,7 @@ export async function persistRun(db: RpcDb, opts: {
     p_files: result.ok ? opts.merged : null, p_summary: result.summary,
     p_acceptance: readContract(result.acceptance),
     p_title: opts.title ?? null, p_messages: messages,
-    p_usage: opts.separateUsage || opts.mock || !result.usage.length ? null : {
+    p_usage: opts.separateUsage || !result.usage.length ? null : {
       model: [...new Set(result.usage.map(u => u.model))].join(","),
       input: result.usage.reduce((n,u) => n+u.input,0), output: result.usage.reduce((n,u) => n+u.output,0),
     },
@@ -76,13 +76,4 @@ export async function persistRun(db: RpcDb, opts: {
   if (error || !data) throw new Error(error?.message ?? "Run could not be saved.");
   if ((data as {conflict?:string}).conflict) throw new Error((data as {conflict:string}).conflict);
   return data as RunReceipt;
-}
-
-/** Generations started today (UTC) by the current user. Counts real runs only. */
-export async function generationsToday(db: Db): Promise<number> {
-  const since = new Date();
-  since.setUTCHours(0, 0, 0, 0);
-  const { data, error } = await db.from("usage_logs").select("id").gte("created_at", since.toISOString()).limit(1000);
-  if (error) throw new Error(`Usage read failed: ${error.message}`);
-  return data?.length ?? 0;
 }

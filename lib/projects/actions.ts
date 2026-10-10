@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { insforgeAdmin } from "@/lib/insforge/admin";
 import { insforgeServer } from "@/lib/insforge/server";
+import { MAX_PROMPT_CHARS } from "./prompt";
 import { titleFromPrompt } from "./title";
 
-const promptSchema = z.string().trim().min(1, "Describe what you want to build.").max(8000);
+const promptSchema = z.string().trim().min(1, "Describe what you want to build.").max(MAX_PROMPT_CHARS);
 const titleSchema = z.string().trim().min(1, "Give your project a name.").max(120);
 
 export type ActionResult = { error?: string } | undefined;

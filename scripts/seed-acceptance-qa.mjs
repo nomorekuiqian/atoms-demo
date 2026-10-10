@@ -13,7 +13,7 @@ const fx=JSON.parse(await readFile('fixtures/new-acceptance-counter.json','utf8'
 const contract=JSON.parse(fx.emma),files=Object.fromEntries([...fx.alex.matchAll(/<file path="([^"]+)">([\s\S]*?)<\/file>/g)].map(m=>[m[1],m[2]]));
 const call=async(name,args)=>{const r=await admin.rpc(name,args);assert.ifError(r.error);return r.data;};
 const p=await client.database.from('projects').insert([{title:'QA acceptance counter — synthetic fixture'}]).select('id').single();assert.ifError(p.error);const pid=p.data.id;
-const id=randomUUID(),lease=randomUUID();await call('claim_generation_v2',{p_id:id,p_project:pid,p_user:uid,p_expected:null,p_fingerprint:id,p_lease:lease,p_limit:30,p_mock:true});
+const id=randomUUID(),lease=randomUUID();await call('claim_generation_v3',{p_id:id,p_project:pid,p_user:uid,p_expected:null,p_fingerprint:id,p_lease:lease,p_concurrency:3});
 const args={p_id:id,p_user:uid,p_lease:lease,p_files:files,p_summary:'Synthetic acceptance counter',p_title:null,p_messages:['user','mike','emma','bob','alex'].map(role=>({role,content:role,meta:{status:'done'}})),p_usage:null,p_acceptance:contract};
 const receipt=await call('finish_generation_v3',args);
 await call('finish_generation_v3',{...args,p_acceptance:{items:[]}});

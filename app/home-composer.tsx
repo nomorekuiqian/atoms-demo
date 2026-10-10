@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Composer } from "@/components/workspace/composer";
 import { ThemePicker } from "@/components/app/theme-picker";
 import { createProject } from "@/lib/projects/actions";
+import { MAX_PROMPT_CHARS } from "@/lib/projects/prompt";
 import { withTheme } from "@/lib/themes";
 
 const EXAMPLES: [string, string][] = [
@@ -45,7 +46,7 @@ export function HomeComposer({ signedIn }: { signedIn: boolean }) {
   React.useEffect(() => {
     const prompt = params.get("prompt");
     if (prompt && params.get("resume") !== "1") {
-      setDraft(prompt.slice(0, 4000));
+      setDraft(prompt.slice(0, MAX_PROMPT_CHARS));
       inputRef.current?.focus();
     }
   }, [params]);

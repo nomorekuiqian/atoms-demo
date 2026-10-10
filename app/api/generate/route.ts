@@ -13,6 +13,7 @@ import { serverEnv } from "@/lib/env";
 import { createGatewayModels, type AgentModels } from "@/lib/llm/models";
 import type { Usage } from "@/lib/llm/types";
 import { insforgeServer } from "@/lib/insforge/server";
+import { MAX_PROMPT_CHARS } from "@/lib/projects/prompt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ const bodySchema = z.object({
   requestId: z.string().uuid(),
   expectedVersionId: z.string().uuid().nullable(),
   /** Omit to (re)answer the project's most recent user message: first run after creation, or retry. */
-  prompt: z.string().trim().min(1).max(8000).optional(),
+  prompt: z.string().trim().min(1).max(MAX_PROMPT_CHARS).optional(),
   retry: z.boolean().default(false),
   mode: z.enum(["build", "fix"]).default("build"),
   errors: z.array(z.string().max(2000)).max(5).optional(),
@@ -101,10 +102,9 @@ async function generate(request: Request) {
   if (body.record) return json(400, "Legacy text recording is unavailable for tool-loop runs. Use the ReAct smoke report instead.");
 
   const lease = randomUUID();
-  // No daily allowance. Concurrency is per account; the shared demo account serves several reviewers at once.
-  const concurrency = env.DEMO_EMAIL && user.email?.toLowerCase() === env.DEMO_EMAIL.toLowerCase() ? 6 : 3;
+  // No daily allowance. 3 concurrent builds per account unless account_limits overrides it (the shared demo account).
   const { data: claim, error: claimError } = await admin.rpc("claim_generation_v3", {
-    p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,p_concurrency:concurrency,
+    p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,p_concurrency:3,
   });
   if (claimError) return json(isRunConflict(claimError) ? 409 : 503, isRunConflict(claimError) ? "This request is running or the project changed. Retry shortly, or reload the project." : "Could not start this request. Please retry.");
   if ((claim as {busy?:boolean})?.busy) return json(429,(claim as {message:string}).message);
@@ -161,7 +161,7 @@ async function generate(request: Request) {
           merged: files,
           result,
           userId: user.id,
-          mock: false, separateUsage:true,
+          separateUsage:true,
         });
         const version = receipt.version;
         if (version && receipt.files) {

@@ -13,12 +13,6 @@ const sleep = (ms: number, signal?: AbortSignal) =>
     });
   });
 
-export function pickFixture(fixtures: Fixture[], prompt: string, hasFiles: boolean): Fixture {
-  const p = prompt.toLowerCase();
-  const pool = fixtures.filter((f) => f.name.startsWith(hasFiles ? "edit-" : "new-"));
-  return pool.find((f) => f.match.some((m) => p.includes(m))) ?? pool[0] ?? fixtures[0];
-}
-
 /** Replays a fixture with realistic pacing. No network, no credit. */
 export function createMockLLM(fixture: Fixture, opts: { chunkDelayMs?: number } = {}): LLM {
   const delay = opts.chunkDelayMs ?? 12;

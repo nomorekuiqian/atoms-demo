@@ -129,7 +129,8 @@ export async function* runPipeline(input: PipelineInput, deps: PipelineDeps): As
     try {
     const agent = new ToolLoopAgent({
       id, model: deps.modelFor(id, modelId), instructions: REACT_INSTRUCTIONS[id], tools,
-      toolChoice: "required", maxRetries: 1, maxOutputTokens: id === "alex" ? 32000 : 4500,
+      toolChoice: "required", maxRetries: 1, // Large enough for a ~60KB rewrite yet short enough to finish inside the task deadline; editFile covers bigger files.
+      maxOutputTokens: id === "alex" ? 20000 : 4500,
       stopWhen: [isStepCount(ROLE_STEPS[id]), () => finished],
       prepareStep: () => {
         budget();
@@ -279,7 +280,8 @@ export async function* runPipeline(input: PipelineInput, deps: PipelineDeps): As
             emit({ type: "file_start", path: draft.path });
           }
           if (!content || content.value.length <= draft.sent.length) return;
-          if (content.value.length > MAX_FILE_BYTES) return withdraw(draft);
+          // Same UTF-8 byte measure as execute(); encode only once the text could exceed it.
+          if (content.value.length * 3 > MAX_FILE_BYTES && new TextEncoder().encode(content.value).length > MAX_FILE_BYTES) return withdraw(draft);
           emit({ type: "file_delta", path: draft.path, delta: content.value.slice(draft.sent.length) });
           draft.sent = content.value;
         } else if (part.type === "tool-error") withdraw(drafts.get(part.toolCallId));
