@@ -1,157 +1,60 @@
-# Atoms Lite
+# Atoms Lite 交付说明
 
-用一句话生成可运行的 HTML/CSS/JS 应用。Mike 分派需求，Emma 整理产品要求，Bob 规划文件，Alex 编写代码；过程流式展示，支持继续修改、历史版本、运行错误修复和公开发布。增强版还支持版本检查、文件引用、点选元素修改、版本 Diff 与源码 ZIP。现在也支持版本绑定的验收清单、独立沙箱行为检查、父版本退化提示和带证据修复。
+2026-10-10 更新。验收标准见 [PRD](docs/PRD.md)。
 
-**[在线体验](https://53bg3mbj.insforge.site) · [GitHub](https://github.com/nomorekuiqian/atoms-demo) · [增强版验收](docs/RELEASE-ENHANCED-2026-10-10.md) · [v1.0 基线](docs/RELEASE-2026-10-10.md)**
+[在线体验](https://53bg3mbj.insforge.site) · [源码仓库](https://github.com/nomorekuiqian/atoms-demo) · 登录页点 Try the demo account 即可进入（共享账号，项目大家共用）
 
-交付评阅请先看 **[简要说明：实现思路、完成范围与后续优先级](docs/DELIVERY-NOTES.md)**。当前架构的已知问题和待补验项以该说明为入口；下方分阶段验收记录保留其历史范围。
+## 产品现在能做什么
 
-登录页点击 **Try the demo account**，无需输入密码。共享体验账号中的修改对所有体验者可见；需要独立项目可自行注册。
+一句话描述需求，Mike 分派，Emma 写验收要求，Bob 规划文件，Alex 写代码并自查，过程实时可见。产出是最多 6 个文件的 HTML/CSS/JS 应用，在沙箱 iframe 里预览，可以继续改、回退、发布。
 
-![工作台：对话、生成文件与实时预览](docs/screenshots/workspace-real.png)
+![](docs/screenshots/workspace-real.png)
 
-## 示例应用
+| 模块 | 内容 | 状态 |
+|---|---|---|
+| 生成与迭代 | 四角色生成，工具调用过程可回看；继续对话修改，可引用文件或点选预览元素 | 已上线。文件逐段显示已在本地验证，未部署 |
+| 代码、预览、版本 | 代码高亮、沙箱预览、5 套主题；完整快照、恢复、Diff、源码 ZIP | 已上线 |
+| 修复与验收 | 运行报错一键修复；版本绑定验收清单，有限的浏览器自动检查，退化提示 | 已上线。自动检查需手动触发 |
+| 发布与分享 | 公开链接指向固定快照；Discover 浏览，Remix 复制 | 已上线 |
+| 账号与保护 | 邮箱 / Google / 体验账号；RLS、并发限制、幂等重放、版本冲突检测 | 已上线。Google 未用真实账号走完授权 |
 
-以下三个应用均由真实模型生成，并在无登录浏览器中验收。数据保存在访问者自己的浏览器。
+本地 129 项测试、类型检查、lint、构建都通过；真实模型跑过新建、修改、修错三条冒烟，发布流程和 375px 手机视图也测过。还没做的是 PRD 全量回归和真机测试。
 
-- [番茄钟](https://53bg3mbj.insforge.site/p/my-pomodoro)：开始、暂停、重置和今日完成次数。
-- [记账本](https://53bg3mbj.insforge.site/p/expense-tracker)：分类、月度合计、新增/删除、刷新保留。
-- [贪吃蛇](https://53bg3mbj.insforge.site/p/snake-classic)：键盘或手机方向按钮、暂停、高分记录。
+## 技术选型
 
-![线上真实生成与发布流程（约 2 倍速）](docs/screenshots/walkthrough.gif)
+前端用 Next.js 15 + TypeScript + Tailwind 3.4 + Zustand。页面、鉴权和 API 在一个项目里，部署只有一个单元。预览用 `iframe srcdoc`：生成物是静态文件，不需要 Sandpack 那套打包；`sandbox` 不开 `allow-same-origin`，生成代码读不到主站 cookie。流式用 SSE，因为只需要服务端单向推送。
 
-## 技术与运行模式
+后端用 InsForge，数据库、登录、模型网关、部署都在一个平台上，数据隔离直接写成 RLS 策略。Agent 用 Vercel AI SDK 的 `ToolLoopAgent`，每个角色一个独立循环，我只定义工具、停止条件和预算。四个角色都用 Claude Haiku 5.5，因为一次生成要调好几轮，速度和价格最重要。存版本、记用量、冲突检查放在同一个 Postgres 事务里。本地和线上都直接调用真实模型，不用 mock。
 
-Next.js 15 App Router / TypeScript / Tailwind CSS **3.4** / Radix + shadcn 风格组件 / Zustand / Vitest。InsForge 提供 Postgres、Auth、RLS、Model Gateway 与 Sites 托管。
-
-生产使用 **真实 Claude Haiku 5.5**（四个角色均使用 `anthropic/claude-haiku-5.5`），`LLM_MOCK=0`。本地默认回放 fixture，不消耗 AI 额度。Mock 将已有 fixture 转换成脚本化模型响应，仍执行同一套 SDK 工具循环；它无法证明真实模型的规划和修复能力。
-
-```mermaid
-flowchart LR
-  UI[首页 / 工作台] -->|POST + SSE| API[Next Route Handler]
-  API --> Mike[Mike 独立 ReAct Loop]
-  Mike -->|按需委派| Emma[Emma 独立 ReAct Loop]
-  Mike -->|按需委派| Bob[Bob 独立 ReAct Loop]
-  Mike -->|按需委派| Alex[Alex 独立 ReAct Loop]
-  Alex --> Tools[读写候选文件 / 静态检查 / 修复]
-  Tools --> Alex
-  Mike --> Gateway[InsForge Model Gateway]
-  API --> DB[(InsForge Postgres + RLS)]
-  API -->|文件流 / 版本事件| UI
-  UI --> Frame[沙箱 iframe 预览]
-  DB --> Public[公开发布快照 / Discover / Remix]
-```
-
-编排器 `lib/agents/` 不依赖 Next.js。使用 **Vercel AI SDK 7 `ToolLoopAgent`**，四个角色各有独立上下文、工具权限、完成条件与循环步数上限。Mike 通过工具按需委派；新应用要求 Emma 契约与 Bob 计划，已有应用可直接交给 Alex。每个角色必须通过工具完成校验，不能仅用最终文字宣称完成。
-
-Alex 在候选快照中读写文件、运行静态检查、观察失败并继续修复。写入工具参数校验通过后，完整文件通过 SSE 更新草稿；没有提交的候选不会覆盖旧版本。工具轨迹随消息保存，可在 Working process 中查看。全局上限为 48 次模型步骤、160 次工具调用、8 次委派和 240 秒；每步结算后检查累计 100,000 token 阈值（可能超出一个在途调用）。旧版的单次文本生成器只供历史基线脚本使用。
-
-**浏览器行为验收仍是独立入口，尚未接进服务端 ReAct loop；没有后台任务检查点或断线续跑。** [架构与本轮验证](docs/REACT-AGENTS.md)。
-
-## 需求验收与行为检查
-
-打开工作台 **Acceptance**：自动检查执行固定的点击、输入、文本/数量/属性断言及刷新；人工检查需记录实际观察。结果绑定源码摘要和不可变版本，新版本不能继承旧版“通过”。父版本同项曾通过、当前失败时显示退化；点击 **Repair this failure** 只触发一次修复，修复后需要重新运行检查。
-
-测试在单独沙箱和空测试存储中进行，普通预览数据不变。自动回传来自生成环境，只是有限范围的行为观察；“静态检查通过”“没有观察到报错”“人工确认”和“自动观察通过”不是同一件事。旧版本没有验收契约时会明确显示未记录。
-
-[交付证据](docs/ACCEPTANCE-DELIVERY-2026-10-10.md) · [真实模型对照实验与原始结果](benchmarks/README.md) · [公开验收样本](https://53bg3mbj.insforge.site/p/acceptance-benchmark-counter)。样本由真实团队实验生成后导入，版本保留来源标注。**该实验针对迁移前固定流水线**，十个小任务中直接 Alex 为 10/10，团队为 9/10；不宣称多代理天然改善生成质量。
-
-## 本地运行
-
-需要 Node 22、npm，以及自己有权访问的 InsForge 项目。**Mock 只替代模型，不替代数据库和认证。**
-
-```bash
-git clone https://github.com/nomorekuiqian/atoms-demo.git
-cd atoms-demo
-npm ci
-cp .env.example .env.local
-# 填入自己项目的 URL、anon/admin key、体验账号；保持 LLM_MOCK=1
-npm run dev
-```
-
-新后端需登录并连接 InsForge 后执行：
-
-```bash
-npx -y @insforge/cli db migrations up --all
-npx -y @insforge/cli config apply
-```
-
-体验账号需先在对应后端注册，再将邮箱/密码填入服务端变量。切勿将本项目生产凭据复制到公开文档。
-
-| 变量 | 用途 |
-|---|---|
-| `NEXT_PUBLIC_INSFORGE_URL` / `NEXT_PUBLIC_INSFORGE_ANON_KEY` | 公开 SDK 配置；数据受 RLS 保护 |
-| `INSFORGE_API_KEY` | 服务端管理凭据，用于所有者校验后的原子提交、发布 / Discover / Remix |
-| `OPENROUTER_BASE_URL` / `OPENROUTER_API_KEY` | InsForge 网关或自有 OpenRouter；服务端专用 |
-| `OPENROUTER_CHAT_MODEL` | Alex；默认 Haiku 5.5 |
-| `OPENROUTER_FAST_MODEL` | Mike / Emma / Bob；默认 Haiku 5.5 |
-| `LLM_MOCK` | 本地 `1` 回放 `fixtures/*.json`；生产 `0` |
-| `DEMO_EMAIL` / `DEMO_PASSWORD` | 一键体验登录，密码不送到浏览器 |
-| `DAILY_LIMIT` / `DAILY_LIMIT_DEMO` | 默认普通账号 30、共享体验账号 10 次/UTC 日 |
-| 旧 `record` 请求 | 新循环返回明确 400；改用 `scripts/smoke-react.mjs` 记录工具轨迹 |
-| `NEXT_DIST_DIR` | 可选，本地多个服务使用独立构建目录 |
-
-```bash
-npm run typecheck
-npm run lint
-npm run test
-npm run build               # 每次部署前必须通过
-npm run deploy
-```
-
-真实接口冒烟会消耗额度；仅在需要时执行：
-
-```bash
-node --env-file=.env.local scripts/smoke-generate.mjs "Build a small timer" --app http://localhost:3000
-node --env-file=.env.local scripts/check-rls.mjs http://localhost:3000
-node --env-file=.env.local scripts/check-publish.mjs http://localhost:3000
-```
-
-后两项创建并清理临时项目，RLS 检查还会注册测试账号。生成脚本是否真实调用取决于目标服务的 `LLM_MOCK`，不是调用者本地环境。
-
-## 功能与验收
-
-| 范围 | 状态 |
-|---|---|
-| F1–F9：账号、项目、四角色流式生成、代码、预览、迭代、保存、发布 | 已实现、线上验收 |
-| E1：查看历史 / Restore / Revert | 已实现，Restore 另存新版本 |
-| E2：Issue Report / Resolve | 真实报错→Resolve→原按钮再次点击无报错 |
-| E3：Discover / Remix | 已实现，复制发布代码，不复制对话 |
-| E6：5 个主题预设 | 已实现，Paper/Midnight 真实对照验证 |
-| M6：明暗、375px、加载/错误、断网重试 | 已检查，主站浏览器无未处理异常 |
-| M7：真实模型、3 个示例、文档、交付回归 | T1–T13 通过；完整证据见发布记录 |
-| M8：原子保存、幂等重试、并发版本冲突 | 隔离数据库故障注入及线上真实重放通过 |
-| M9：版本静态检查与预览观察 | 绑定版本/摘要/会话，发布重新核对快照 |
-| M10：文件引用与 Diff | 引用版本校验；按需比较前一版，不改历史 |
-| M11：源码 ZIP | 当前/历史版原始源码，所有者鉴权，运行说明 |
-| M12：点选元素 | 可移除上下文，排除输入值，真实模型修改验证 |
-| M13：原创头像、主题卡、空态、真实封面 | 深浅/375px/慢网/404 与线上资源通过 |
-| M14：增强交付 | T1–T21，真实完整链路；v1.1 附注标签记录 SHA/部署 |
-
-T1 首页、T2 注册、T3 连续三次真实生成、T4 Code、T5 迭代、T6 恢复、T7 修复、T8 发布复制、T9 匿名应用、T10 体验账号、T11 持久化、T12 用户隔离、T13 手机布局的逐项证据与边界在 [发布记录](docs/RELEASE-2026-10-10.md)。T3 三次为 22.4 / 25.5 / 23.2 秒。本轮单测 **98 项**通过；增强版重新完成 T1–T13 真实链路，新建计数器到功能检查约 16.2 秒，详见[增强验收](docs/RELEASE-ENHANCED-2026-10-10.md)。
-
-![增强版：主题风格参考](docs/screenshots/theme-cards-1280.png)
-
-增强测试脚本接受 `APP_URL` 和 `PLAYWRIGHT_MODULE`（已安装的 Playwright 路径）。`check-version-diff.mjs`、`check-export.mjs`、`check-element-selection.mjs`、`check-visual-assets.mjs` 使用忽略目录内的私有 QA 会话；不要提交凭据。`check-release-flow.mjs` 新建隔离账号并调用真实模型四次，成功后清理项目、保留用量；目标必须已明确配置为真实模型。它不适合作为免费 CI 的每次运行测试。
+![](docs/screenshots/workspace-code-1280.png)
 
 ## 关键取舍
 
-- **iframe srcdoc 而不是 Sandpack。** 仅面向小型静态应用，无需安装依赖和远程构建。生成代码始终在 `sandbox="allow-scripts allow-forms allow-modals"` 中运行，禁止 `allow-same-origin`。
-- **可信外壳 + 沙箱 iframe。** 公开页与主站同域，但生成代码在 opaque origin 的 iframe 内，不能读取主站 DOM/cookie。`localStorage` 由父页按项目/公开链接隔离桥接；不是跨设备云同步。
-- **完整快照而不是 diff 存储。** 读取/恢复简单，历史不改写；代价是存储重复。发布指针独立，后续修改不会自动改动已发布应用。
-- **结构化工具写入候选文件。** 当前使用 SDK 工具参数校验和路径检查；完整文件收到后才推送草稿，不将部分输出标为成功版本。XML 文件标签解析属于迁移前实现，真正的代码增量展示仍待完善。
-- **Route Handler 而不是 Edge Function。** M0 线上连续 150 秒 SSE 实测逐条到达；编排器保持框架无关，便于以后迁移。该次测试是历史证据，不是无限时长承诺。
-- **Mock 优先，真实收尾。** 避免 UI 开发反复花费额度；真实验收中发现截断输出和删除报错按钮的问题，分别收紧完整性判定与修复提示。
-- **Haiku 优先。** 生产与本地配置一致，保留模型切换环境变量。网关未返回剩余额度，不能承诺固定的可用生成次数。
+**只做纯前端小应用，不装依赖、不带后端。** 一旦允许 npm 依赖，就得有远程构建环境，还要处理依赖安全、构建失败和缓存；一旦生成后端，就得给每个应用开数据库、管权限。这些都会把 Demo 的重心从"多 Agent 能不能把应用做对"拉到基础设施上。限定成静态文件以后，预览就是一个 iframe，发布就是存一份快照，出问题的地方很少。代价也很直接：需要真实数据库或第三方库的应用现在做不了。
 
-## 维护与已知边界
+**安全边界放在平台，而不是指望模型守规矩。** 模型的输出不可信，提示词写得再严也可能被绕过，比如用户在需求里夹带指令，或者生成的代码本身有问题。所以模型手里只有读写候选文件和做检查的工具，碰不到终端、数据库管理和发布；生成的代码只在不带 `allow-same-origin` 的沙箱里运行。这样即使模型出错，最坏结果也只是生成了一个坏应用，不会波及平台和其他用户。
 
-已启用 InsForge 每日访问 Discover（台北 09:00），首次计划 2026-10-11。尚需观察首条执行记录；是否计入服务商活跃度由平台决定。不要把 schedule 创建成功等同于项目永不暂停。
+**完成要靠工具证明，不信模型自己说做完了。** 模型很容易在没检查的情况下宣布完成，或者检查之后又改了文件。所以 Alex 每写一次文件，之前的检查结果就作废，最新版本没通过检查就提交不了；Emma 和 Bob 的产物也要先过校验工具。这样多花几轮调用，换来的是"提交了的版本至少通过了静态检查"这句话一定成立。
 
-生成应用仅支持 HTML/CSS/JS，最多 6 文件；不支持 npm 构建或自定义后端。共享体验额度按账号计，不保证每个访客都有独立 10 次。2026-10-10 的验收已用满当天体验额度，2026-10-11 台北 08:00 重置；期间可以操作公开示例或注册独立账号。
+**"生成成功"和"功能对"分开记录。** 静态检查只能看出文件齐不齐、引用对不对，看不出按钮点了有没有反应。如果把两者混成一个"通过"，用户会以为应用已经验过了。所以浏览器验收单独跑，结果绑定到具体版本和源码摘要上，新版本不会继承旧版本的通过记录。界面上显示的是"静态检查通过"，不是"测试全部通过"。
 
-M8–M14 已完成。检查结果是静态检查与当前预览会话的观察，不能代替全部业务测试；动态导入和外部依赖仍有边界。元素位置是修改线索。源码 ZIP 不带托管存储数据；解压后用 HTTP 服务运行，外链仍需网络。
+![](docs/screenshots/acceptance-qa-2026-10-10.jpg)
 
-后续优先级：先完善运行检查与外部资源兼容，再考虑动态作品分享卡及应用后端能力。可选小物件和背景纹理已取消，不增加无用途装饰。Google 登录已加入，真实账号完整授权尚需账号本人验收，见 [Google 登录](docs/GOOGLE-LOGIN.md)。
+**用多 Agent，但给它套上预算。** 拆成四个角色，是为了让需求、计划和代码各自能被单独检查和修正，每个角色的上下文也更干净。代价是更贵、更慢：新建一个小应用约 30 秒、6.6 万 token，比单次生成多出好几轮调用。ReAct 循环还可能卡住，验证时就遇到过 Alex 反复读同一个文件直到 token 用完。所以每次任务都有硬上限（48 次模型调用、160 次工具调用、240 秒、30 万 token），超了就停，不产生新版本。至于多 Agent 到底值不值这个成本，目前还没有结论，这就是下面 P1 要回答的问题。
 
-干净克隆的安装、mock 启动与完整生成已验证。依赖审计仍有 9 项告警（6 high / 3 moderate，0 critical）；升级建议涉及 Next 16 / Tailwind 4，与本题固定栈冲突，未强制升级。详见验收记录。
+**版本存完整快照，不存差异。** 每个版本都存全部文件，读取和恢复都是直接取一份，不用回放一串 diff，历史也不会因为某次合并出错而损坏。重复存储在 6 个文件的规模下几乎没有成本。发布指针单独存，之后怎么改，已发布的应用都不受影响。
+
+## 接下来怎么排
+
+排序的原则是：先证明多 Agent 这套架构值得，再补 Alex 最缺的能力，最后才扩大能生成的应用范围。越往后的事情越依赖前面的结论，反过来做，问题只会越堆越难查。
+
+| 优先级 | 做什么 | 为什么排在这里 | 做到什么算完 |
+|---|---|---|---|
+| P1 | 新架构十任务对照：Alex 单独做 vs 团队做 | 多 Agent 是这个产品最核心也最贵的设计，却还没有数据支持。旧流水线的结果是单独 10/10、团队 9/10，团队并没有更好。如果新架构也是这样，就该退回更简单的方案，后面的工作也要跟着调整 | 同一批任务、独立断言，比较成功率、耗时、token 和失败类型 |
+| P2 | 把浏览器检查做成 Alex 能调用的工具 | "按钮点了没反应"这类问题静态检查发现不了，只能靠浏览器跑一遍。现在要用户自己点验收、再点修复，Alex 自己看不到运行结果，修完也不知道修好了没有 | 限制动作种类、时长和重试次数；行为通过率提升，原有功能不被改坏，并报出多花的时间和钱 |
+| P3 | 后台任务、检查点、断线恢复 | 现在任务绑在一次请求上，断线就白跑。但目前一次生成只要半分钟左右，断线还不是主要问题；等它真成了主要失败原因再引入队列，免得过早背上运维负担 | 断线后能从某一步接着跑，能取消，能查状态 |
+| P4 | 支持 npm 依赖、给生成应用配后端 | 这是用户价值最大的方向，但会把第一条取舍里避开的问题全部带回来：构建环境、依赖安全、数据隔离。只有前面的评测和验收足够可靠，才能判断放开之后质量有没有掉 | 沙箱里能装依赖、能打包；生成应用的数据按项目隔离，受 RLS 保护 |
+
+P1 出结论之前，我不会加新角色，也不会给不同角色分配不同模型。之后每加一项能力，都同时报出质量提升和多花的时间、费用。
+
+相关文档：[ReAct 架构与验证](docs/REACT-AGENTS.md) · [固定任务实验](benchmarks/README.md) · [本地运行与配置](docs/DEVELOPMENT.md)
