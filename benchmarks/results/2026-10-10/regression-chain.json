@@ -1,0 +1,606 @@
+{
+  "scope": "Synthetic baseline, deliberate synthetic regression, real-model repair; isolated backend browser observations",
+  "versions": [
+    {
+      "id": "1eb1e753-833b-4755-800c-fcbc6de06acd",
+      "number": 105,
+      "files": {
+        "app.js": "let n=Number(localStorage.getItem(\"count\")||0);const count=document.querySelector(\"#count\");function render(){count.textContent=String(n);localStorage.setItem(\"count\",String(n));}document.querySelector(\"#add\").onclick=()=>{n++;render();};document.querySelector(\"#reset\").onclick=()=>{n=0;render();};render();",
+        "index.html": "<!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width\"><title>Counter</title></head><body><main><h1>Counter</h1><output id=\"count\">0</output><button id=\"add\">Add</button><button id=\"reset\">Reset</button></main><script src=\"app.js\"></script></body></html>"
+      },
+      "acceptance": {
+        "items": [
+          {
+            "id": "counter-add",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "expectText",
+                "text": "1",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter reads 1",
+            "procedure": "Click Add once",
+            "requirement": "Add increases the counter"
+          },
+          {
+            "id": "counter-reset",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "click",
+                "selector": "#reset"
+              },
+              {
+                "kind": "expectText",
+                "text": "0",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter reads 0",
+            "procedure": "Add then Reset",
+            "requirement": "Reset clears the counter"
+          },
+          {
+            "id": "counter-storage",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "reload"
+              },
+              {
+                "kind": "expectText",
+                "text": "1",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter remains 1",
+            "procedure": "Add then refresh",
+            "requirement": "Counter survives refresh"
+          }
+        ]
+      },
+      "parent_version_id": null,
+      "summary": "History fixture 105"
+    },
+    {
+      "id": "0e0e634b-f0e2-4d1d-aebd-715e4408ca83",
+      "number": 106,
+      "files": {
+        "app.js": "// Deliberate fixture regression: controls still exist, their behavior was removed.",
+        "index.html": "<!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width\"><title>Counter</title></head><body><main><h1>Counter</h1><output id=\"count\">0</output><button id=\"add\">Add</button><button id=\"reset\">Reset</button></main><script src=\"app.js\"></script></body></html>"
+      },
+      "acceptance": {
+        "items": [
+          {
+            "id": "counter-add",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "expectText",
+                "text": "1",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter reads 1",
+            "procedure": "Click Add once",
+            "requirement": "Add increases the counter"
+          },
+          {
+            "id": "counter-reset",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "click",
+                "selector": "#reset"
+              },
+              {
+                "kind": "expectText",
+                "text": "0",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter reads 0",
+            "procedure": "Add then Reset",
+            "requirement": "Reset clears the counter"
+          },
+          {
+            "id": "counter-storage",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "reload"
+              },
+              {
+                "kind": "expectText",
+                "text": "1",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter remains 1",
+            "procedure": "Add then refresh",
+            "requirement": "Counter survives refresh"
+          }
+        ]
+      },
+      "parent_version_id": "1eb1e753-833b-4755-800c-fcbc6de06acd",
+      "summary": "Synthetic regression: inert controls"
+    },
+    {
+      "id": "5b6c0d13-6e28-4ed3-9edf-51d8ab9042df",
+      "number": 107,
+      "files": {
+        "app.js": "(function () {\n  \"use strict\";\n\n  var KEY = \"counter-value\";\n  var countEl = document.getElementById(\"count\");\n  var addBtn = document.getElementById(\"add\");\n  var resetBtn = document.getElementById(\"reset\");\n\n  function load() {\n    try {\n      var raw = window.localStorage.getItem(KEY);\n      var n = parseInt(raw, 10);\n      return isNaN(n) ? 0 : n;\n    } catch (e) {\n      return 0;\n    }\n  }\n\n  function save(value) {\n    try {\n      window.localStorage.setItem(KEY, String(value));\n    } catch (e) {\n      /* storage unavailable; counter still works in memory */\n    }\n  }\n\n  var count = load();\n\n  function render() {\n    if (countEl) countEl.textContent = String(count);\n  }\n\n  function setCount(value) {\n    count = value;\n    save(count);\n    render();\n  }\n\n  if (addBtn) {\n    addBtn.addEventListener(\"click\", function () {\n      setCount(count + 1);\n    });\n  }\n\n  if (resetBtn) {\n    resetBtn.addEventListener(\"click\", function () {\n      setCount(0);\n    });\n  }\n\n  render();\n})();",
+        "index.html": "<!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width\"><title>Counter</title></head><body><main><h1>Counter</h1><output id=\"count\">0</output><button id=\"add\">Add</button><button id=\"reset\">Reset</button></main><script src=\"app.js\"></script></body></html>"
+      },
+      "acceptance": {
+        "items": [
+          {
+            "id": "counter-add",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "expectText",
+                "text": "1",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter reads 1",
+            "procedure": "Click Add once",
+            "requirement": "Add increases the counter"
+          },
+          {
+            "id": "counter-reset",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "click",
+                "selector": "#reset"
+              },
+              {
+                "kind": "expectText",
+                "text": "0",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter reads 0",
+            "procedure": "Add then Reset",
+            "requirement": "Reset clears the counter"
+          },
+          {
+            "id": "counter-storage",
+            "mode": "automatic",
+            "steps": [
+              {
+                "kind": "click",
+                "selector": "#add"
+              },
+              {
+                "kind": "reload"
+              },
+              {
+                "kind": "expectText",
+                "text": "1",
+                "match": "equals",
+                "selector": "#count"
+              }
+            ],
+            "expected": "Counter remains 1",
+            "procedure": "Add then refresh",
+            "requirement": "Counter survives refresh"
+          }
+        ]
+      },
+      "parent_version_id": "0e0e634b-f0e2-4d1d-aebd-715e4408ca83",
+      "summary": "Restore counter Add, Reset, and persistence"
+    }
+  ],
+  "observations": [
+    {
+      "id": "0dd64acf-824d-43db-9a63-39063c6e26b3",
+      "version_id": "1eb1e753-833b-4755-800c-fcbc6de06acd",
+      "criterion_id": "counter-add",
+      "digest": "fbd945909af816124e75bf2ef24218f31cf8b61661332b086e6b854590b7cff1",
+      "kind": "manual",
+      "status": "passed",
+      "evidence": {
+        "note": "Clicked Add once in the preview; the counter changed from 0 to 1."
+      },
+      "created_at": "2026-10-10T06:53:55.418699+00:00",
+      "sequence": 2
+    },
+    {
+      "id": "af23a20a-0a30-4ee7-8262-be10166b84a8",
+      "version_id": "1eb1e753-833b-4755-800c-fcbc6de06acd",
+      "criterion_id": "counter-add",
+      "digest": "fbd945909af816124e75bf2ef24218f31cf8b61661332b086e6b854590b7cff1",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 2 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Observed \"1\"; expected equals \"1\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "72141373-656c-419b-9138-5a35792e296a"
+      },
+      "created_at": "2026-10-10T07:00:08.226375+00:00",
+      "sequence": 3
+    },
+    {
+      "id": "46a7f202-5d1d-4e4c-a0d1-8af1547025f6",
+      "version_id": "1eb1e753-833b-4755-800c-fcbc6de06acd",
+      "criterion_id": "counter-reset",
+      "digest": "fbd945909af816124e75bf2ef24218f31cf8b61661332b086e6b854590b7cff1",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 3 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Clicked #reset",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"0\"; expected equals \"0\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "617ded27-91b3-4d92-9ddc-fb708416dc7b"
+      },
+      "created_at": "2026-10-10T07:00:09.651945+00:00",
+      "sequence": 4
+    },
+    {
+      "id": "946feb70-b45a-475a-85bd-fd84b64d442f",
+      "version_id": "1eb1e753-833b-4755-800c-fcbc6de06acd",
+      "criterion_id": "counter-storage",
+      "digest": "fbd945909af816124e75bf2ef24218f31cf8b61661332b086e6b854590b7cff1",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 3 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Reloaded the isolated app with its test storage.",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"1\"; expected equals \"1\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "91ae1a93-ebb8-4891-83a9-a470a995b4b3"
+      },
+      "created_at": "2026-10-10T07:00:11.025869+00:00",
+      "sequence": 5
+    },
+    {
+      "id": "9f02a71b-8cd8-4c41-91dc-8bce361b8c94",
+      "version_id": "0e0e634b-f0e2-4d1d-aebd-715e4408ca83",
+      "criterion_id": "counter-add",
+      "digest": "7292bb8871cc201beadde4ee6fa1194fba8d1393f265361189853ac89db4e96c",
+      "kind": "automatic",
+      "status": "failed",
+      "evidence": {
+        "note": "Observed \"0\"; expected equals \"1\"",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Observed \"0\"; expected equals \"1\"",
+            "status": "failed"
+          }
+        ],
+        "sessionId": "89ad382e-00e2-46c8-aea0-d1a395c3d255"
+      },
+      "created_at": "2026-10-10T07:01:07.009281+00:00",
+      "sequence": 6
+    },
+    {
+      "id": "e58f85e0-bd73-4ea3-9942-6c52167622cf",
+      "version_id": "0e0e634b-f0e2-4d1d-aebd-715e4408ca83",
+      "criterion_id": "counter-reset",
+      "digest": "7292bb8871cc201beadde4ee6fa1194fba8d1393f265361189853ac89db4e96c",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 3 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Clicked #reset",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"0\"; expected equals \"0\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "fbbd7d20-6629-4637-834e-82f3dbd95b89"
+      },
+      "created_at": "2026-10-10T07:01:08.676704+00:00",
+      "sequence": 7
+    },
+    {
+      "id": "e7ab63ca-6060-436b-aa94-a1cc423fc671",
+      "version_id": "0e0e634b-f0e2-4d1d-aebd-715e4408ca83",
+      "criterion_id": "counter-storage",
+      "digest": "7292bb8871cc201beadde4ee6fa1194fba8d1393f265361189853ac89db4e96c",
+      "kind": "automatic",
+      "status": "failed",
+      "evidence": {
+        "note": "Observed \"0\"; expected equals \"1\"",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Reloaded the isolated app with its test storage.",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"0\"; expected equals \"1\"",
+            "status": "failed"
+          }
+        ],
+        "sessionId": "fa63ff62-29a8-4a0b-85ca-dd0f07c93517"
+      },
+      "created_at": "2026-10-10T07:01:12.031308+00:00",
+      "sequence": 8
+    },
+    {
+      "id": "44759ba2-3820-40e9-9f09-98ba613188f8",
+      "version_id": "5b6c0d13-6e28-4ed3-9edf-51d8ab9042df",
+      "criterion_id": "counter-add",
+      "digest": "04ccfb2581a4a288c21d8a2af164979fac5096913b11748ccde8adc723d7ba9d",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 2 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Observed \"1\"; expected equals \"1\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "7684d1df-9184-4799-9576-96b39a3a4895"
+      },
+      "created_at": "2026-10-10T07:04:33.255073+00:00",
+      "sequence": 9
+    },
+    {
+      "id": "090a07ec-91db-4208-a316-7bdaf75e2266",
+      "version_id": "5b6c0d13-6e28-4ed3-9edf-51d8ab9042df",
+      "criterion_id": "counter-reset",
+      "digest": "04ccfb2581a4a288c21d8a2af164979fac5096913b11748ccde8adc723d7ba9d",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 3 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Clicked #reset",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"0\"; expected equals \"0\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "611a9293-7974-420c-b7ba-07b36886c401"
+      },
+      "created_at": "2026-10-10T07:04:34.792529+00:00",
+      "sequence": 10
+    },
+    {
+      "id": "300f7b11-93c9-46d7-b1f3-4e45630ac523",
+      "version_id": "5b6c0d13-6e28-4ed3-9edf-51d8ab9042df",
+      "criterion_id": "counter-storage",
+      "digest": "04ccfb2581a4a288c21d8a2af164979fac5096913b11748ccde8adc723d7ba9d",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 3 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Reloaded the isolated app with its test storage.",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"1\"; expected equals \"1\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "fd7a36f9-aa0e-42f3-9e2e-a9fab20a6ddf"
+      },
+      "created_at": "2026-10-10T07:04:36.356576+00:00",
+      "sequence": 11
+    },
+    {
+      "id": "40d46f98-1009-4d1c-b05b-61d23b44ddb2",
+      "version_id": "5b6c0d13-6e28-4ed3-9edf-51d8ab9042df",
+      "criterion_id": "counter-add",
+      "digest": "04ccfb2581a4a288c21d8a2af164979fac5096913b11748ccde8adc723d7ba9d",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 2 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Observed \"1\"; expected equals \"1\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "8ea00a38-08ea-4d0d-a69e-b58cc345dff5"
+      },
+      "created_at": "2026-10-10T07:05:40.521627+00:00",
+      "sequence": 12
+    },
+    {
+      "id": "9a063135-3cd4-4545-aa37-92c59c6e4272",
+      "version_id": "5b6c0d13-6e28-4ed3-9edf-51d8ab9042df",
+      "criterion_id": "counter-reset",
+      "digest": "04ccfb2581a4a288c21d8a2af164979fac5096913b11748ccde8adc723d7ba9d",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 3 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Clicked #reset",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"0\"; expected equals \"0\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "6e67fd06-8095-49db-87ab-cc464a5c422b"
+      },
+      "created_at": "2026-10-10T07:05:41.853963+00:00",
+      "sequence": 13
+    },
+    {
+      "id": "b5a622d5-08a5-4df8-b864-5a6e50767cf1",
+      "version_id": "5b6c0d13-6e28-4ed3-9edf-51d8ab9042df",
+      "criterion_id": "counter-storage",
+      "digest": "04ccfb2581a4a288c21d8a2af164979fac5096913b11748ccde8adc723d7ba9d",
+      "kind": "automatic",
+      "status": "passed",
+      "evidence": {
+        "note": "All 3 declared steps were observed passing in an isolated browser session.",
+        "steps": [
+          {
+            "index": 0,
+            "detail": "Clicked #add",
+            "status": "passed"
+          },
+          {
+            "index": 1,
+            "detail": "Reloaded the isolated app with its test storage.",
+            "status": "passed"
+          },
+          {
+            "index": 2,
+            "detail": "Observed \"1\"; expected equals \"1\"",
+            "status": "passed"
+          }
+        ],
+        "sessionId": "25b8190c-b85c-4071-93ee-eb4fee5f499c"
+      },
+      "created_at": "2026-10-10T07:05:43.17208+00:00",
+      "sequence": 14
+    }
+  ]
+}
