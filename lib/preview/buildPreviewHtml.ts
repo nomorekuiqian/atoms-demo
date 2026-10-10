@@ -2,6 +2,7 @@
  * Turn a multi-file project into one HTML document for a sandboxed iframe (srcdoc) or the public page.
  * Local <link rel="stylesheet"> and <script src> references are inlined; external URLs are left alone.
  */
+import { resolveResource, htmlAttribute, RESOURCE_ATTR, dataUrl } from "./resources";
 import { selectionScript } from "./selection-script";
 import type { Files } from "@/lib/agents/types";
 
@@ -13,52 +14,65 @@ export type PreviewOptions = {
   storage?: Record<string, string>;
 };
 
-const EXTERNAL = /^(?:[a-z]+:)?\/\//i;
-
-function localPath(ref: string): string | null {
-  const clean = ref.trim().split(/[?#]/)[0];
-  if (!clean || EXTERNAL.test(clean) || clean.startsWith("data:")) return null;
-  return clean.replace(/^\.\//, "").replace(/^\//, "");
-}
-
 const escapeScript = (code: string) => code.replace(/<\/script/gi, "<\\/script");
 const escapeStyle = (css: string) => css.replace(/<\/style/gi, "<\\/style");
-const attr = (tag: string, name: string) => new RegExp(`\\b${name}\\s*=\\s*(["'])(.*?)\\1`, "i").exec(tag)?.[2];
 
 export function inlineAssets(html: string, files: Files): { html: string; missing: string[] } {
-  const missing: string[] = [];
-
-  let out = html.replace(/<link\b[^>]*>/gi, (tag) => {
-    if (!/rel\s*=\s*(["'])stylesheet\1/i.test(tag)) return tag;
-    const href = attr(tag, "href");
-    const path = href ? localPath(href) : null;
-    if (!path) return tag;
-    if (files[path] === undefined) {
-      missing.push(path);
-      return tag;
+  const missing = new Set<string>();
+  const local = (from: string, ref: string) => {
+    const resolved = resolveResource(from, ref);
+    if (!resolved.path) return null;
+    if (!Object.hasOwn(files, resolved.path)) { missing.add(resolved.path); return null; }
+    return resolved.path;
+  };
+  const asset = (from: string, ref: string) => {
+    const path = local(from, ref);
+    if (!path || !path.endsWith('.svg')) return ref;
+    return dataUrl(files[path], 'image/svg+xml') + (ref.includes('#') ? '#' + ref.split('#')[1] : '');
+  };
+  const css = (content: string, from: string, seen = new Set<string>()): string => {
+    if (seen.has(from)) return '/* cyclic stylesheet import omitted */';
+    const visited = new Set(seen).add(from);
+    // Inline imported sheets before rewriting their relative resource URLs.
+    const imported = content.replace(/@import\s+(?:url\(\s*)?(?:"([^"]+)"|'([^']+)'|([^\s)]+))\s*\)?([^;]*);/gi, (tag, a, b, c, media) => {
+      const path = local(from, a ?? b ?? c);
+      if (!path || !path.endsWith('.css')) return tag;
+      const body = css(files[path], path, visited);
+      return media.trim() ? `@media ${media.trim()} {${body}}` : body;
+    });
+    return imported.replace(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/gi, (tag, a, b, c) => {
+      const ref = a ?? b ?? c;
+      const rewritten = asset(from, ref);
+      return rewritten === ref ? tag : `url("${rewritten}")`;
+    });
+  };
+  // Tokenize raw-text elements as a whole: never rewrite markup inside JS strings or comments.
+  const out = html.replace(/<!--[\s\S]*?-->|<script\b[^>]*>[\s\S]*?<\/script\s*>|<style\b[^>]*>[\s\S]*?<\/style\s*>|<[^>]+>/gi, tag => {
+    if (tag.startsWith('<!--')) return tag;
+    if (/^<script\b/i.test(tag)) {
+      const open = tag.slice(0, tag.indexOf('>') + 1);
+      const src = htmlAttribute(open, 'src');
+      const path = src ? local('index.html', src) : null;
+      if (!path) return tag;
+      const rest = open.slice(7, -1).replace(/\s+src\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, '');
+      if (/(?:^|\s)(?:defer|async)(?:\s|=|$)/i.test(rest)) return `<script${rest} data-file="${path}" src="${dataUrl(files[path], 'text/javascript')}"></script>`;
+      return `<script${rest} data-file="${path}">\n${escapeScript(files[path])}\n</script>`;
     }
-    return `<style data-file="${path}">\n${escapeStyle(files[path])}\n</style>`;
+    if (/^<style\b/i.test(tag)) return tag.replace(/(>)([\s\S]*)(<\/style\s*>)/i, (_m, a, body, b) => a + escapeStyle(css(body, 'index.html')) + b);
+    if (/^<link\b/i.test(tag) && htmlAttribute(tag, 'rel')?.toLowerCase() === 'stylesheet') {
+      const href = htmlAttribute(tag, 'href');
+      const path = href ? local('index.html', href) : null;
+      if (!path) return tag;
+      const media = htmlAttribute(tag, 'media');
+      return `<style data-file="${path}"${media ? ` media="${media.replace(/"/g, '&quot;')}"` : ''}>\n${escapeStyle(css(files[path], path))}\n</style>`;
+    }
+    return tag.replace(RESOURCE_ATTR, (match, prefix, a, b, c) => {
+      const ref = a ?? b ?? c;
+      const rewritten = asset('index.html', ref);
+      return ref === rewritten ? match : `${prefix}"${rewritten}"`;
+    }).replace(/(\sstyle\s*=\s*)(["'])(.*?)\2/gi, (_m, prefix, quote, body) => `${prefix}${quote}${css(body, 'index.html').replaceAll(quote, quote === '"' ? '&quot;' : '&#39;')}${quote}`);
   });
-
-  out = out.replace(/<script\b([^>]*)>\s*<\/script>/gi, (tag, attrs: string) => {
-    const src = attr(tag, "src");
-    const path = src ? localPath(src) : null;
-    if (!path) return tag;
-    if (files[path] === undefined) {
-      missing.push(path);
-      return tag;
-    }
-    const rest = attrs.replace(/\s*\bsrc\s*=\s*(["']).*?\1/i, "");
-    // defer/async are ignored on inline classic scripts. A data URL keeps the
-    // external-script scheduling semantics while avoiding a network file path.
-    if (/(?:^|\s)(?:defer|async)(?:\s|=|$)/i.test(rest)) {
-      let binary="";for(const byte of new TextEncoder().encode(files[path]))binary+=String.fromCharCode(byte);
-      return `<script${rest} data-file="${path}" src="data:text/javascript;base64,${btoa(binary)}"></script>`;
-    }
-    return `<script${rest} data-file="${path}">\n${escapeScript(files[path])}\n</script>`;
-  });
-
-  return { html: out, missing };
+  return { html: out, missing: [...missing] };
 }
 
 /** Runs first inside the preview: storage shim + console/error forwarding to the parent workspace. */

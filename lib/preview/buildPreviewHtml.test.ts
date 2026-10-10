@@ -15,7 +15,7 @@ describe("inlineAssets", () => {
     expect(html).toContain("<style data-file=\"style.css\">\nbody{color:red}\n</style>");
     expect(html).toContain('<script data-file="app.js">');
     expect(html).toContain('<script type="module" data-file="mod.js">');
-    expect(missing).toEqual([]);
+    expect(missing).toEqual(["x.png"]);
   });
 
   it("leaves external and non-stylesheet references alone", () => {
@@ -70,4 +70,20 @@ it("preserves external defer scheduling using an exact UTF-8 data URL",()=>{
  expect(html).toContain('defer');
  const encoded=html.match(/base64,([^"<>]+)/)?.[1];
  expect(Buffer.from(encoded!,"base64").toString("utf8")).toBe(code);
+});
+
+it('uses the same normalized resource paths as static checking and supports bare attributes', () => {
+  const html = buildPreviewHtml({'index.html':'<script src=./js/../app.js></script>', 'app.js':'console.log("works")'});
+  expect(html).toContain('console.log("works")');
+  expect(html).not.toContain('src=');
+});
+it('embeds SVG images and nested CSS assets without rewriting script strings', () => {
+  const html = buildPreviewHtml({'index.html':'<link rel=stylesheet href=css/main.css><img src=icon.svg><script>const x = \'<img src="icon.svg">\';</script>', 'css/main.css':'p{background:url(../icon.svg)}', 'icon.svg':'<svg/>'});
+  expect(html.match(/data:image\/svg\+xml;base64,/g)).toHaveLength(2);
+  expect(html).toContain('const x = \'<img src="icon.svg">\'');
+});
+it('inlines CSS imports relative to the imported file and preserves media', () => {
+  const html = buildPreviewHtml({'index.html':'<link rel=stylesheet href=css/main.css>', 'css/main.css':'@import "other.css" screen;', 'css/other.css':'p{background:url(../icon.svg)}', 'icon.svg':'<svg/>'});
+  expect(html).toContain('@media screen');
+  expect(html).toContain('data:image/svg+xml;base64,');
 });

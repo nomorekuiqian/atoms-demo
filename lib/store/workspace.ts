@@ -28,6 +28,8 @@ export type ConsoleEntry = { id: number; level: "log" | "info" | "warn" | "error
 
 export type WorkspaceInit = {
   projectId: string;
+  messagesBefore?: number | null;
+  versionsBefore?: number | null;
   title: string;
   messages: UIMessage[];
   files: Files;
@@ -108,6 +110,7 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
 
   init: (data) =>
     set({
+      messagesBefore: null, versionsBefore:null,
       ...data,
       status: "idle",
       draft: {},

@@ -1,0 +1,51 @@
+// Isolated backend only. Pass the CLI branch config, never the production config.
+import {readFile} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {createClient,createAdminClient} from '@insforge/sdk';
+const config=JSON.parse(await readFile(process.argv[2],'utf8'));
+assert(config.appkey.includes('-'),'Require an isolated branch appkey');
+const baseUrl=`https://${config.appkey}.${config.region}.insforge.app`;
+const api=createAdminClient({baseUrl,apiKey:config.api_key}).database;
+const client=createClient({baseUrl,anonKey:config.api_key});
+const signup=await client.auth.signUp({email:`reliability-${Date.now()}@example.com`,password:`QA-${randomUUID()}!`});
+if(signup.error)throw signup.error;
+const user=signup.data.user.id;
+const project=await client.database.from('projects').insert([{title:'Disposable reliability QA'}]).select('id').single();
+if(project.error)throw project.error;
+const pid=project.data.id;
+const rpc=async(name,args)=>{const r=await api.rpc(name,args);if(r.error)throw new Error(r.error.message);return r.data;};
+const claim=(id,lease,limit=1)=>({p_id:id,p_project:pid,p_user:user,p_expected:null,p_fingerprint:id,p_lease:lease,p_limit:limit,p_mock:false,p_concurrency:2});
+try {
+ const ids=[randomUUID(),randomUUID()],leases=[randomUUID(),randomUUID()];
+ const results=await Promise.all(ids.map((id,i)=>rpc('claim_generation_v2',claim(id,leases[i]))));
+ assert.equal(results.filter(x=>x.claimed).length,1);assert.equal(results.filter(x=>x.quota).length,1);
+ console.log('PASS last daily slot is atomically reserved');
+ const winner=results.findIndex(x=>x.claimed),lease=leases[winner];
+ const usage={model:'fixture-no-LLM',input:3,output:4};
+ await rpc('settle_generation_attempt',{p_lease:lease,p_user:user,p_usage:usage});
+ await rpc('settle_generation_attempt',{p_lease:lease,p_user:user,p_usage:usage});
+ const logs=await api.from('usage_logs').select('id').eq('attempt_id',lease);assert.ifError(logs.error);assert.equal(logs.data.length,1);
+ const denied=await client.database.rpc('claim_generation_v2',claim(randomUUID(),randomUUID()));assert(denied.error);
+ console.log('PASS independent idempotent usage ledger and browser RPC denial');
+ const finished=await rpc('finish_generation',{p_id:ids[winner],p_user:user,p_lease:lease,p_files:{'index.html':'<button>test</button>'},p_summary:'test',p_title:null,p_messages:['user','mike','emma','bob','alex'].map(role=>({role,content:role})),p_usage:null});
+ const replay=await rpc('claim_generation_v2',claim(ids[winner],randomUUID()));assert.equal(replay.cached.version.id,finished.version.id);
+ const same=await api.from('messages').select('role, sequence, created_at').eq('project_id',pid).order('sequence',{ascending:true});assert.ifError(same.error);assert.deepEqual(same.data.map(m=>m.role),['user','mike','emma','bob','alex']);
+ assert.equal(new Set(same.data.map(m=>m.created_at)).size,1);
+ console.log('PASS same timestamp messages have stable order; complete replay bypasses quota');
+ const seed=await api.from('messages').insert(Array.from({length:310},(_,i)=>({project_id:pid,role:'user',content:`message-${i}`})));assert.ifError(seed.error);
+ let before=null,rows=[];
+ do {let q=client.database.from('messages').select('sequence, content').eq('project_id',pid).order('sequence',{ascending:false}).limit(50);if(before)q=q.lt('sequence',before);const r=await q;assert.ifError(r.error);rows.push(...r.data);before=r.data.length===50?r.data.at(-1).sequence:null;}while(before);
+ assert.equal(rows.length,315);assert.equal(rows[0].content,'message-309');assert.equal(new Set(rows.map(r=>r.sequence)).size,315);
+ const spoof=await client.database.from('messages').insert([{project_id:pid,role:'user',content:'forged',sequence:1}]);assert(spoof.error);
+ console.log('PASS 315 messages paginate without loss and sequence cannot be forged');
+ // New leases can run concurrently, but stale writer must fail without losing its charged usage.
+ const a=randomUUID(),b=randomUUID(),la=randomUUID(),lb=randomUUID();
+ for(const [id,l] of [[a,la],[b,lb]])assert((await rpc('claim_generation_v2',{...claim(id,l,20),p_expected:finished.version.id})).claimed);
+ const blocked=await rpc('claim_generation_v2',{...claim(randomUUID(),randomUUID(),20),p_expected:finished.version.id});assert(blocked.busy);
+ const finish=(id,l)=>({p_id:id,p_user:user,p_lease:l,p_files:{'index.html':'updated'},p_summary:'updated',p_title:null,p_messages:[],p_usage:null});
+ const outcomes=await Promise.all([rpc('finish_generation',finish(a,la)),rpc('finish_generation',finish(b,lb))]);assert.equal(outcomes.filter(x=>x.conflict).length,1);
+ for(const l of [la,lb])await rpc('settle_generation_attempt',{p_lease:l,p_user:user,p_usage:usage});
+ const allLogs=await api.from('usage_logs').select('id').eq('user_id',user);assert.ifError(allLogs.error);assert.equal(allLogs.data.length,3);
+ console.log('PASS concurrency cap and stale writer usage retained');
+} finally {const r=await api.from('projects').delete().eq('id',pid);if(r.error)throw r.error;}

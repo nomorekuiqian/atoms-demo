@@ -40,7 +40,7 @@ export async function loadHistory(db: Db, projectId: string, limit = 6) {
     .from("messages")
     .select("role, content, version_id, created_at")
     .eq("project_id", projectId)
-    .order("created_at", { ascending: false })
+    .order("sequence", { ascending: false })
     .limit(limit);
   if (error) throw new Error(`History read failed: ${error.message}`);
   return ((data ?? []) as { role: string; content: string }[]).reverse();
@@ -52,7 +52,7 @@ type RpcDb = { rpc: (name: string, args: Record<string, unknown>) => PromiseLike
 /** One database transaction owns the snapshot, pointer, messages and usage. */
 export async function persistRun(db: RpcDb, opts: {
   requestId: string; lease: string; userId: string; merged: Files | null;
-  result: PipelineResult; mock: boolean; prompt?: string; title?: string; references?: FileReference[]; element?:ElementContext;
+  result: PipelineResult; mock: boolean; separateUsage?: boolean; prompt?: string; title?: string; references?: FileReference[]; element?:ElementContext;
 }): Promise<RunReceipt> {
   const { result } = opts;
   const messages = [
@@ -63,7 +63,7 @@ export async function persistRun(db: RpcDb, opts: {
     p_id: opts.requestId, p_user: opts.userId, p_lease: opts.lease,
     p_files: result.ok ? opts.merged : null, p_summary: result.summary,
     p_title: opts.title ?? null, p_messages: messages,
-    p_usage: opts.mock || !result.usage.length ? null : {
+    p_usage: opts.separateUsage || opts.mock || !result.usage.length ? null : {
       model: [...new Set(result.usage.map(u => u.model))].join(","),
       input: result.usage.reduce((n,u) => n+u.input,0), output: result.usage.reduce((n,u) => n+u.output,0),
     },

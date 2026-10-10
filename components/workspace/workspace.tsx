@@ -16,6 +16,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { parsePreviewMessage } from "@/lib/preview/protocol";
 import { VersionChecks } from "./version-checks";
 import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
+import { HistoryMore } from "./history-more";
+import { RunScope } from "@/lib/store/runScope";
 import { readRun } from "@/lib/sse/readRun";
 import { toast } from "sonner";
 import { selectIssues, useWorkspace, type VersionRow, type WorkspaceInit } from "@/lib/store/workspace";
@@ -49,7 +51,8 @@ function readAppStorage(projectId: string): Record<string, string> {
 /* ───────────────────────────── run control ───────────────────────────── */
 
 function useRun() {
-  const controller = React.useRef<AbortController | null>(null);
+  const scope = React.useRef(new RunScope());
+  React.useEffect(() => { const current = scope.current; return () => current.cancel(); }, []);
   const store = useWorkspace;
   type RunOptions = { prompt: string | null; mode?: "build" | "fix"; errors?: string[]; retry?: boolean; requestId?: string; expectedVersionId?: string | null; references?:FileReference[]; element?:ElementContext };
   const lastRun = React.useRef<RunOptions | null>(null);
@@ -61,33 +64,34 @@ function useRun() {
     lastRun.current = opts;
     s.startRun(opts.retry ? null : opts.prompt, opts.references,opts.element);
     if(!opts.retry && opts.mode!=="fix")s.set({fileReferences:[],selectedElement:null,selecting:false});
-    const ctrl = new AbortController();
-    controller.current = ctrl;
+    const token = scope.current.start(s.projectId, opts.requestId!);
+    const current = () => token.current(store.getState().projectId);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ projectId: s.projectId, prompt: opts.prompt ?? undefined, mode: opts.mode, errors: opts.errors, retry: opts.retry, requestId: opts.requestId, expectedVersionId: opts.expectedVersionId, references: opts.references,element:opts.element }),
-        signal: ctrl.signal,
+        signal: token.signal,
       });
       if (!res.ok || !res.body) {
         const body = await res.json().catch(() => null);
-        store.getState().finishRun({ error: body?.error ?? "Couldn't start the build. Try again." });
+        if (current()) store.getState().finishRun({ error: body?.error ?? "Couldn't start the build. Try again." });
         return;
       }
-      await readRun(res.body, e => store.getState().apply(e));
-      store.getState().finishRun();
+      await readRun(res.body, e => { if (current()) store.getState().apply(e); });
+      if (current()) store.getState().finishRun();
     } catch (err) {
+      if (!current()) return;
       if (err instanceof Error && err.name === "AbortError") store.getState().finishRun({ stopped: true });
       else store.getState().finishRun({ error: "The connection dropped before confirmation. Try again to recover the result." });
     } finally {
-      controller.current = null;
+      token.finish();
     }
   }, [store]);
 
   const stop = React.useCallback(() => {
     store.getState().set({ status: "stopping" });
-    controller.current?.abort();
+    scope.current.stop();
   }, [store]);
 
   const retry = React.useCallback(() => {
@@ -117,6 +121,7 @@ function useVersions() {
       });
       const body = await res.json();
       if (!res.ok) return toast(body.error ?? "Couldn't restore. Try again.");
+      if (useWorkspace.getState().projectId !== projectId) return;
       restored(body.version as VersionRow, body.files as Files, body.messageId);
       toast(`${body.version.summary} as v${body.version.number}`);
     } catch {
@@ -136,7 +141,7 @@ function useVersions() {
     try {
       const res=await fetch(`/api/projects/${projectId}/versions/${versionId}`,{signal:controller.signal});
       const body=await res.json();if(!res.ok)throw new Error(body.error);
-      if(seq!==loading.current.seq)return;
+      if(seq!==loading.current.seq || useWorkspace.getState().projectId!==projectId)return;
       const latest=useWorkspace.getState();
       set({viewing:{id:body.version.id,number:body.version.number,files:body.version.files},tab:latest.tab===tab?"preview":latest.tab,console:[],issuesDismissed:true,versionLoading:null});
     }catch(error){
@@ -168,6 +173,18 @@ function Chat({
   const currentNumber = versions.find((v) => v.id === currentVersionId)?.number;
   // Revert on a version card = go back to the version before it.
   const before = (n: number) => versions.find((v) => v.number === n - 1);
+  const revert = async (n: number) => {
+    const s=useWorkspace.getState();
+    if(before(n))return onRestore(before(n)!.id);
+    try {
+      const res=await fetch(`/api/projects/${s.projectId}/history?kind=versions&before=${n}`);
+      const body=await res.json();if(!res.ok)throw new Error(body.error);
+      const target=(body.items as VersionRow[]).find(v=>v.number===n-1);
+      if(useWorkspace.getState().projectId!==s.projectId)return;
+      if(!target)throw new Error("Previous version was not found.");
+      onRestore(target.id);
+    }catch(e){toast(e instanceof Error?e.message:"Could not load previous version.");}
+  };
   const status = useWorkspace((s) => s.status);
   const runError = useWorkspace((s) => s.runError);
   const fileReferences=useWorkspace(s=>s.fileReferences);
@@ -192,6 +209,7 @@ function Chat({
         className="min-h-0 flex-1 space-y-7 overflow-y-auto px-4 py-5"
         aria-live="polite"
       >
+        <HistoryMore kind="messages" />
         {messages.map((m) =>
           m.role === "system" ? (
             <div key={m.id} className="space-y-2">
@@ -214,7 +232,7 @@ function Chat({
                   summary={m.version.summary}
                   current={m.version.number === currentNumber}
                   restoreLabel="Revert"
-                  onRestore={before(m.version.number) && status === "idle" ? () => onRestore(before(m.version!.number)!.id) : undefined}
+                  onRestore={m.version.number > 1 && status === "idle" ? () => void revert(m.version!.number) : undefined}
                   restoring={restoring === before(m.version.number)?.id}
                 />
               )}
@@ -522,6 +540,7 @@ function AppPanel({
                 onView={onView}
                 onRestore={idle ? onRestore : undefined}
               />
+            <HistoryMore kind="versions" />
             </div>
           ) : (
             <p className="p-6 text-base text-ink-2">Each finished build is saved here as a version.</p>

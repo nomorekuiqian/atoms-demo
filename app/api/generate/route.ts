@@ -10,7 +10,7 @@ import { FIXTURES } from "@/fixtures";
 import { isRunConflict } from "@/lib/agents/conflict";
 import { mergeFiles } from "@/lib/agents/merge";
 import { runPipeline } from "@/lib/agents/orchestrator";
-import { generationsToday, loadHistory, loadProjectState, persistRun } from "@/lib/agents/persist";
+import { loadHistory, loadProjectState, persistRun } from "@/lib/agents/persist";
 import type { AgentEvent, ChatTurn, PipelineResult } from "@/lib/agents/types";
 import { serverEnv } from "@/lib/env";
 import { createMockLLM, pickFixture } from "@/lib/llm/mock";
@@ -86,10 +86,6 @@ async function generate(request: Request) {
   if(invalidReference)return json(invalidReference.status,invalidReference.message);
   const invalidElement=elementProblem(body.element,state.currentVersionId);
   if(invalidElement)return json(409,invalidElement);
-  if (!mock) {
-    const limit = user.email === env.DEMO_EMAIL ? env.DAILY_LIMIT_DEMO : env.DAILY_LIMIT;
-    if ((await generationsToday(db)) >= limit) return json(429, `You've used today's ${limit} builds. Come back tomorrow.`);
-  }
   const history = await loadHistory(db, body.projectId, 12);
   let prompt = body.prompt;
   if (!prompt && body.mode === "fix") prompt = "Fix the runtime errors in the preview.";
@@ -119,15 +115,19 @@ async function generate(request: Request) {
   }
 
   const lease = randomUUID();
-  const { data: claim, error: claimError } = await admin.rpc("claim_generation", {
+  const { data: claim, error: claimError } = await admin.rpc("claim_generation_v2", {
     p_id:body.requestId,p_project:body.projectId,p_user:user.id,p_expected:body.expectedVersionId,p_fingerprint:fingerprint,p_lease:lease,
+    p_limit: user.email === env.DEMO_EMAIL ? env.DAILY_LIMIT_DEMO : env.DAILY_LIMIT, p_mock:mock, p_concurrency:2,
   });
   if (claimError) return json(isRunConflict(claimError) ? 409 : 503, isRunConflict(claimError) ? "This request is running or the project changed. Retry shortly, or reload the project." : "Could not start this request. Please retry.");
+  if ((claim as {quota?:boolean;busy?:boolean})?.quota || (claim as {busy?:boolean})?.busy) return json(429,(claim as {message:string}).message);
   if ((claim as {conflict?:string})?.conflict) return json(409, (claim as {conflict:string}).conflict);
   if ((claim as {cached?:RunReceipt})?.cached) return replay((claim as {cached:RunReceipt}).cached);
 
   const controller = new AbortController();
-  request.signal.addEventListener("abort", () => controller.abort());
+  const abort = () => controller.abort();
+  request.signal.addEventListener("abort", abort);
+  if (request.signal.aborted) controller.abort();
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -174,7 +174,7 @@ async function generate(request: Request) {
           merged: files,
           result,
           userId: user.id,
-          mock,
+          mock, separateUsage:true,
         });
         const version = receipt.version;
         if (version && receipt.files) {
@@ -193,6 +193,13 @@ async function generate(request: Request) {
         const conflict = err instanceof Error && isRunConflict(err);
         send({ type: "error", message: conflict ? "The project changed while building. Reload before making another change." : "Couldn't confirm this run. Retry to recover its saved result.", retryable: !conflict });
       } finally {
+        request.signal.removeEventListener("abort", abort);
+        const usage = llm.usage();
+        const { error: usageError } = await admin.rpc("settle_generation_attempt", {
+          p_lease:lease, p_user:user.id,
+          p_usage: mock || !usage.length ? null : {model:[...new Set(usage.map(u=>u.model))].join(","),input:usage.reduce((n,u)=>n+u.input,0),output:usage.reduce((n,u)=>n+u.output,0)},
+        });
+        if (usageError) console.error("[generation usage]",usageError.message);
         send({ type: "done" });
         clearInterval(ping);
         if (!closed) ctrl.close();

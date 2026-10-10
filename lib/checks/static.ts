@@ -6,21 +6,8 @@ export type CheckIssue = { path: string; message: string };
 export type StaticCheck = { errors: CheckIssue[]; dependencies: string[]; unchecked: string[] };
 export type CheckRecord = StaticCheck & {versionId:string; digest:string; checkedAt:string; kind:"static"};
 
-/** Literal URL resolution only. Never fetches or executes generated content. */
-export function resolveResource(from: string, ref: string): {external?:string;path?:string;error?:string} {
-  const value=ref.trim();
-  if(!value || value.startsWith('#') || /^(data:|blob:)/i.test(value)) return {};
-  if(/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value)) return {external:value};
-  let clean:string;
-  try {clean=decodeURIComponent(value.split(/[?#]/)[0]);}catch{return{error:"Invalid resource URL"};}
-  const parts=value.startsWith('/')?[]:from.split('/').slice(0,-1);
-  for(const part of clean.split('/')) {
-    if(!part || part==='.')continue;
-    if(part==='..'){if(!parts.length)return{error:"Resource escapes the project"};parts.pop();}
-    else parts.push(part);
-  }
-  return {path:parts.join('/')};
-}
+export { resolveResource } from "@/lib/preview/resources";
+import { resolveResource, RESOURCE_ATTR } from "@/lib/preview/resources";
 export function checkFiles(files:Files):StaticCheck {
   const errors:CheckIssue[]=[],dependencies=new Set<string>(),unchecked=new Set<string>();
   if(!files['index.html']?.trim()) errors.push({path:'index.html',message:'Missing or empty index.html'});
@@ -30,6 +17,7 @@ export function checkFiles(files:Files):StaticCheck {
     const r=resolveResource(path,ref);
     if(r.error)errors.push({path,message:`${r.error}: ${ref}`});
     if(r.external)dependencies.add(r.external);
+    if(r.path?.endsWith('.html')) errors.push({path,message:'Local HTML navigation is not supported by the single-page preview. Use in-page sections.'});
     if(r.path && !Object.hasOwn(files,r.path))errors.push({path,message:`Missing local resource: ${r.path}`});
   };
   for(const [path,content] of Object.entries(files)) {
@@ -39,7 +27,7 @@ export function checkFiles(files:Files):StaticCheck {
     if(/\.html$/.test(path)) {
       const html=content.replace(/<!--[\s\S]*?-->/g,'').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,tag=>tag.slice(0,tag.indexOf('>')+1));
       for(const tag of html.matchAll(/<(?:script|link|img|source|video|audio|iframe|a)\b[^>]*>/gi)) {
-        for(const m of tag[0].matchAll(/\b(?:src|href|poster)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi))reference(path,m[1]??m[2]??m[3]);
+        for(const m of tag[0].matchAll(RESOURCE_ATTR))reference(path,m[2]??m[3]??m[4]);
         if(/\bsrcset\s*=/i.test(tag[0]))unchecked.add('Responsive srcset resources are not checked.');
       }
     }
