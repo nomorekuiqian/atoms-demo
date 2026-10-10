@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ExternalLink, Monitor, RotateCw, Smartphone, SquareTerminal, X } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip";
 import { UserMenu } from "@/components/app/user-menu";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,13 +14,13 @@ import { parsePreviewMessage } from "@/lib/preview/protocol";
 import { VersionChecks } from "./version-checks";
 import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
 import { readRun } from "@/lib/sse/readRun";
-import { insforgeBrowser } from "@/lib/insforge/client";
 import { toast } from "sonner";
 import { selectIssues, useWorkspace, type VersionRow, type WorkspaceInit } from "@/lib/store/workspace";
 import type { Files } from "@/lib/agents/types";
 import { useShallow } from "zustand/react/shallow";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { SplitWorkspace } from "./split-workspace";
 import { AgentMessage } from "./agent-message";
 import { CodeView } from "./code-view";
 import { IssueReport } from "./issue-report";
@@ -94,10 +94,14 @@ function useRun() {
 
 function useVersions() {
   const [busy, setBusy] = React.useState<string | null>(null);
+  const loading=React.useRef<{seq:number;controller?:AbortController}>({seq:0});
+  React.useEffect(()=>()=>loading.current.controller?.abort(),[]);
 
   const restore = React.useCallback(async (versionId: string) => {
     const { projectId, status, restored } = useWorkspace.getState();
     if (status !== "idle") return toast("Wait for the current build to finish.");
+    loading.current.controller?.abort();++loading.current.seq;
+    useWorkspace.getState().set({versionLoading:null,versionError:null});
     setBusy(versionId);
     try {
       const res = await fetch(`/api/projects/${projectId}/restore`, {
@@ -117,13 +121,21 @@ function useVersions() {
   }, []);
 
   const view = React.useCallback(async (versionId: string) => {
-    const { currentVersionId, versions, set } = useWorkspace.getState();
-    if (versionId === currentVersionId) return set({ viewing: null, tab: "preview" });
-    const v = versions.find((x) => x.id === versionId);
-    if (!v) return;
-    const { data, error } = await insforgeBrowser().database.from("versions").select("files").eq("id", versionId).maybeSingle();
-    if (error || !data) return toast("Couldn't load that version.");
-    set({ viewing: { id: v.id, number: v.number, files: data.files as Files }, tab: "preview", console: [], issuesDismissed: true });
+    loading.current.controller?.abort();
+    const seq=++loading.current.seq;
+    const {projectId,currentVersionId,set,tab}=useWorkspace.getState();
+    if(versionId===currentVersionId)return set({viewing:null,tab:"preview",versionLoading:null,versionError:null});
+    const controller=new AbortController();loading.current.controller=controller;
+    set({versionLoading:versionId,versionError:null});
+    try {
+      const res=await fetch(`/api/projects/${projectId}/versions/${versionId}`,{signal:controller.signal});
+      const body=await res.json();if(!res.ok)throw new Error(body.error);
+      if(seq!==loading.current.seq)return;
+      const latest=useWorkspace.getState();
+      set({viewing:{id:body.version.id,number:body.version.number,files:body.version.files},tab:latest.tab===tab?"preview":latest.tab,console:[],issuesDismissed:true,versionLoading:null});
+    }catch(error){
+      if(seq===loading.current.seq && !controller.signal.aborted)set({versionLoading:null,versionError:{id:versionId,message:error instanceof Error?error.message:"Could not load this version."}});
+    }
   }, []);
 
   return { restore, view, busy };
@@ -328,41 +340,39 @@ function Preview() {
 }
 
 function ConsoleDrawer() {
-  const entries = useWorkspace((s) => s.console);
-  const set = useWorkspace((s) => s.set);
-  const list = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    if (list.current) list.current.scrollTop = list.current.scrollHeight;
-  }, [entries]);
-  return (
-    <section aria-label="Console" className="flex h-48 shrink-0 flex-col border-t bg-surface">
-      <header className="flex h-9 items-center gap-2 border-b px-3 text-sm">
-        <span className="font-medium text-ink">Console</span>
-        <span className="tabular text-ink-3">{entries.length}</span>
-        <button type="button" onClick={() => set({ console: [] })} className="ml-auto rounded-sm px-2 py-0.5 text-ink-2 hover:bg-surface-2 hover:text-ink">
-          Clear
-        </button>
-        <button type="button" aria-label="Close console" onClick={() => set({ consoleOpen: false })} className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-2 hover:text-ink">
-          <X className="size-3.5" />
-        </button>
-      </header>
-      <div ref={list} className="min-h-0 flex-1 overflow-auto py-1 font-mono text-[12px] leading-[18px]">
-        {entries.length === 0 && <p className="px-3 py-2 font-sans text-sm text-ink-3">Logs and errors from your app show up here.</p>}
-        {entries.map((e) => (
-          <pre
-            key={e.id}
-            className={cn(
-              "whitespace-pre-wrap border-b border-line px-3 py-1",
-              e.level === "error" && "bg-danger-soft text-danger",
-              e.level === "warn" && "bg-warning-soft text-warning",
-            )}
-          >
-            {e.text}
-          </pre>
-        ))}
-      </div>
-    </section>
-  );
+  const entries=useWorkspace(s=>s.console),set=useWorkspace(s=>s.set);
+  const list=React.useRef<HTMLDivElement>(null),pinned=React.useRef(true);
+  const start=React.useRef<{y:number;height:number}|null>(null);
+  const [height,setHeight]=React.useState(192),[dragging,setDragging]=React.useState(false),[maximum,setMaximum]=React.useState(360);
+  const resize=React.useCallback((value:number)=>{
+    const next=Math.max(64,Math.min(maximum,value));setHeight(next);
+    try{localStorage.setItem("atoms-lite:console-height",String(next));}catch{}
+  },[maximum]);
+  React.useEffect(()=>{
+    const adapt=()=>{const max=Math.max(64,Math.min(480,window.innerHeight*.4));setMaximum(max);setHeight(h=>Math.min(h,max));};
+    adapt();try{const n=Number(localStorage.getItem("atoms-lite:console-height"));if(n>=64)setHeight(Math.min(n,window.innerHeight*.4,480));}catch{}
+    window.addEventListener("resize",adapt);return()=>window.removeEventListener("resize",adapt);
+  },[]);
+  React.useEffect(()=>{if(list.current && pinned.current)list.current.scrollTop=list.current.scrollHeight;},[entries]);
+  return <section aria-label="Console" className="relative flex shrink-0 flex-col bg-surface" style={{height}}>
+    <div role="separator" aria-label="Resize console; Enter resets" aria-orientation="horizontal" aria-valuemin={64} aria-valuemax={maximum} aria-valuenow={height} tabIndex={0}
+      className="h-2 shrink-0 cursor-row-resize touch-none border-t hover:bg-surface-2 focus-visible:bg-accent-soft"
+      onDoubleClick={()=>resize(192)}
+      onKeyDown={e=>{if(["ArrowUp","ArrowDown","Home","End","Enter"].includes(e.key)){e.preventDefault();resize(e.key==="Enter"?192:e.key==="Home"?64:e.key==="End"?maximum:height+(e.key==="ArrowUp"?16:-16));}}}
+      onPointerDown={e=>{e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);start.current={y:e.clientY,height};setDragging(true);}}
+      onPointerMove={e=>{if(start.current)resize(start.current.height+start.current.y-e.clientY);}}
+      onPointerUp={()=>{start.current=null;setDragging(false);}} onPointerCancel={()=>{start.current=null;setDragging(false);}} />
+    <header className="flex h-9 shrink-0 items-center gap-2 border-b px-3 text-sm">
+      <span className="font-medium text-ink">Console</span><span className="tabular text-ink-3">{entries.length}</span>
+      <button type="button" onClick={()=>set({console:[]})} className="ml-auto rounded-sm px-2 py-0.5 text-ink-2 hover:bg-surface-2">Clear</button>
+      <button type="button" aria-label="Close console" onClick={()=>set({consoleOpen:false})} className="grid size-6 place-items-center rounded-full text-ink-2 hover:bg-surface-2"><X className="size-3.5" /></button>
+    </header>
+    <div ref={list} onScroll={e=>{const el=e.currentTarget;pinned.current=el.scrollHeight-el.scrollTop-el.clientHeight<40;}} className="min-h-0 flex-1 overflow-auto py-1 font-mono text-[12px] leading-[18px]">
+      {!entries.length && <p className="px-3 py-2 font-sans text-sm text-ink-3">Logs and errors from your app show up here.</p>}
+      {entries.map(e=><pre key={e.id} className={cn("whitespace-pre-wrap break-words border-b border-line px-3 py-1",e.level==="error" && "bg-danger-soft text-danger",e.level==="warn" && "bg-warning-soft text-warning")}>{e.text}</pre>)}
+    </div>
+    {dragging && <div aria-hidden className="fixed inset-0 z-50 cursor-row-resize" />}
+  </section>;
 }
 
 function AppPanel({
@@ -393,20 +403,18 @@ function AppPanel({
   const issues = useWorkspace(useShallow(selectIssues));
   const issuesDismissed = useWorkspace((s) => s.issuesDismissed);
   const idle = useWorkspace((s) => s.status === "idle");
+  const versionLoading=useWorkspace(s=>s.versionLoading),versionError=useWorkspace(s=>s.versionError);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-sm">
-      <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-        <Tabs value={tab} onValueChange={(v) => set({ tab: v as typeof tab })}>
-          <TabsList>
+    <Tabs value={tab} onValueChange={v=>set({tab:v as typeof tab})} className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-surface shadow-sm">
+      <div className="relative flex h-[84px] shrink-0 flex-col justify-between gap-1 border-b px-3 py-2">
+          <TabsList className="self-start">
             <TabsTrigger value="preview">Preview</TabsTrigger>
             <TabsTrigger value="code">Code</TabsTrigger>
             <TabsTrigger value="versions">Versions</TabsTrigger>
           </TabsList>
-        </Tabs>
-        {tab === "preview" && (
-          <div className="ml-auto flex items-center gap-0.5">
-            <span className="hidden items-center gap-0.5 sm:flex">
+          <div className={cn("ml-auto flex h-8 items-center gap-0.5",tab!=="preview" && "invisible")} aria-hidden={tab!=="preview"} inert={tab!=="preview"}>
+            <span className="flex items-center gap-0.5">
               <ToolButton label="Desktop" active={device === "desktop"} onClick={() => set({ device: "desktop" })}>
                 <Monitor />
               </ToolButton>
@@ -417,7 +425,7 @@ function AppPanel({
             <ToolButton label="Refresh" onClick={() => set({ previewNonce: useWorkspace.getState().previewNonce + 1, console: [], issuesDismissed: false })}>
               <RotateCw />
             </ToolButton>
-            <ToolButton label="Open in new tab" onClick={() => window.open(`/preview/${useWorkspace.getState().projectId}`, "_blank", "noopener")}>
+            <ToolButton label="Open in new tab" onClick={() => window.open(`/preview/${useWorkspace.getState().projectId}?versionId=${viewing?.id ?? currentVersionId}`, "_blank", "noopener")}>
               <ExternalLink />
             </ToolButton>
             <span className="mx-1 h-4 w-px bg-line-strong" aria-hidden />
@@ -428,13 +436,15 @@ function AppPanel({
               </span>
             </ToolButton>
           </div>
-        )}
+        {tab!=="preview" && <p className="absolute bottom-3 left-3 text-sm text-ink-2">{tab==="code"?`${Object.keys(codeFiles).length} source files · Read-only`:`${versions.length} saved versions`}</p>}
       </div>
+      {versionLoading && <p role="status" className="shrink-0 border-b px-3 py-2 text-sm text-ink-2">Loading version… Your current preview stays available.</p>}
+      {versionError && <div role="alert" className="flex shrink-0 items-center gap-2 border-b px-3 py-2 text-sm"><p className="flex-1">{versionError.message}</p><Button size="sm" variant="ghost" onClick={()=>onView(versionError.id)}>Retry version</Button></div>}
       <VersionChecks versionId={viewing?.id ?? currentVersionId} />
       {viewing && tab !== "versions" && (
         <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-accent-soft px-3 py-2 text-base">
           <span className="flex-1 text-accent-ink">Viewing v{viewing.number}. Your current version is unchanged.</span>
-          <Button size="sm" variant="ghost" onClick={() => set({ viewing: null, previewNonce: useWorkspace.getState().previewNonce + 1 })}>
+          <Button size="sm" variant="ghost" onClick={() => currentVersionId && onView(currentVersionId)}>
             Back to current
           </Button>
           <Button size="sm" variant="primary" loading={restoring === viewing.id} onClick={() => onRestore(viewing.id)}>
@@ -443,9 +453,9 @@ function AppPanel({
         </div>
       )}
       <div className="relative min-h-0 flex-1">
-        <div className={cn("h-full", tab !== "preview" && "hidden")}>
+        <TabsContent value="preview" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden">
           <Preview />
-        </div>
+        </TabsContent>
         {tab === "preview" && idle && !viewing && issues.length > 0 && !issuesDismissed && (
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4">
             <div className="pointer-events-auto w-full max-w-[520px]">
@@ -459,9 +469,9 @@ function AppPanel({
             </div>
           </div>
         )}
-        {tab === "code" && <CodeView files={codeFiles} active={activeFile} writing={writing} onSelect={(p) => set({ activeFile: p })} />}
-        {tab === "versions" &&
-          (versions.length ? (
+        <TabsContent value="code" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden"><CodeView files={codeFiles} active={activeFile} writing={writing} onSelect={(p) => set({ activeFile: p })} visible={tab==="code"} scrollKey={`${useWorkspace.getState().projectId}:${viewing?.id ?? currentVersionId}`} /></TabsContent>
+        <TabsContent value="versions" forceMount className="m-0 h-full min-w-0 data-[state=inactive]:hidden">
+          {versions.length ? (
             <div className="h-full overflow-y-auto">
               <VersionList
                 versions={versions.map((v) => ({ id: v.id, number: v.number, summary: v.summary, when: timeAgo(v.created_at), published: v.id === publishedVersionId }))}
@@ -473,10 +483,11 @@ function AppPanel({
             </div>
           ) : (
             <p className="p-6 text-base text-ink-2">Each finished build is saved here as a version.</p>
-          ))}
+          )}
+        </TabsContent>
       </div>
-      {tab === "preview" && consoleOpen && <ConsoleDrawer />}
-    </div>
+      {consoleOpen && <div className={cn("shrink-0",tab!=="preview" && "hidden")}><ConsoleDrawer /></div>}
+    </Tabs>
   );
 }
 
@@ -526,35 +537,17 @@ export function Workspace({ initial, email, autostart }: { initial: WorkspaceIni
           <h1 className="min-w-0 truncate text-base font-medium text-ink">{title}</h1>
           {currentNumber && <span className="tabular hidden rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-ink-2 sm:inline">v{currentNumber}</span>}
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Tabs value={pane} onValueChange={(v) => set({ pane: v as "chat" | "app" })} className="md:hidden">
-              <TabsList>
-                <TabsTrigger value="chat">Chat</TabsTrigger>
-                <TabsTrigger value="app">App</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div role="group" aria-label="Workspace panel" className="inline-flex rounded-full bg-surface-2 p-0.5 lg:hidden">
+              {(["chat","app"] as const).map(value=><button key={value} type="button" aria-pressed={pane===value} aria-controls={`workspace-${value}-panel`} onClick={()=>set({pane:value})} className={cn("h-7 rounded-full px-3 text-sm font-medium text-ink-2",pane===value && "bg-surface text-ink shadow-sm")}>{value==="chat"?"Chat":"App"}</button>)}
+            </div>
             <PublishDialog />
             <UserMenu email={email} />
           </div>
         </header>
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 px-2 pb-2 md:grid-cols-[minmax(360px,38%)_1fr]">
-          <div className={cn("min-h-0 min-w-0", pane === "chat" ? "block" : "hidden md:block")}>
-            <Chat
-              onSend={(prompt) => void run({ prompt })}
-              onStop={stop}
-              onRetry={() => void retry()}
-              onRestore={(id) => void restore(id)}
-              restoring={busy}
-            />
-          </div>
-          <div className={cn("min-h-0 min-w-0", pane === "app" ? "block" : "hidden md:block")}>
-            <AppPanel
-              onResolve={(errors) => void run({ prompt: null, mode: "fix", errors })}
-              onView={(id) => void view(id)}
-              onRestore={(id) => void restore(id)}
-              restoring={busy}
-            />
-          </div>
-        </div>
+        <SplitWorkspace pane={pane}
+          chat={<Chat onSend={(prompt)=>void run({prompt})} onStop={stop} onRetry={()=>void retry()} onRestore={id=>void restore(id)} restoring={busy} />}
+          app={<AppPanel onResolve={errors=>void run({prompt:null,mode:"fix",errors})} onView={id=>void view(id)} onRestore={id=>void restore(id)} restoring={busy} />}
+        />
       </div>
       <Toaster />
     </TooltipProvider>

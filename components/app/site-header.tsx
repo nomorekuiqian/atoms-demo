@@ -13,6 +13,7 @@ export function SiteHeader({ email, children }: { email?: string | null; childre
         <Button asChild variant="ghost" className="hidden sm:inline-flex">
           <Link href="/discover">Discover</Link>
         </Button>
+        {email && <Button asChild variant="ghost"><Link href="/dashboard">Projects</Link></Button>}
         {children}
         {email ? (
           <UserMenu email={email} />

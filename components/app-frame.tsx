@@ -9,7 +9,7 @@ import { buildPreviewHtml } from "@/lib/preview/buildPreviewHtml";
  * (no allow-same-origin), so it can't reach this site's cookies or APIs. Its localStorage is a shim
  * that this trusted host persists under `storageKey` in the visitor's browser.
  */
-export function AppFrame({ files, storageKey, title }: { files: Files; storageKey: string; title: string }) {
+export function AppFrame({ files, storageKey, title, topInset=0 }: { files: Files; storageKey: string; title: string; topInset?:number }) {
   const frame = React.useRef<HTMLIFrameElement>(null);
   const [srcDoc, setSrcDoc] = React.useState<string | null>(null);
 
@@ -39,6 +39,7 @@ export function AppFrame({ files, storageKey, title }: { files: Files; storageKe
       title={title}
       srcDoc={srcDoc}
       sandbox="allow-scripts allow-forms allow-modals"
+      style={{top:topInset,height:`calc(100dvh - ${topInset}px)`}}
       className="fixed inset-0 block h-dvh w-full border-0 bg-[#ffffff]"
     />
   );

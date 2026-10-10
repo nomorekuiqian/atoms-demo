@@ -197,3 +197,16 @@
     color: var(--shiki-dark);
   }
 }
+
+@layer components {
+  .split-workspace { display: grid; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1024px) {
+    .split-workspace { grid-template-columns: minmax(0, var(--chat-width)) 8px minmax(0, 1fr); }
+  }
+  .code-layout { container-type: inline-size; }
+  .code-file-list { display: none; }
+  @container (min-width: 580px) {
+    .code-file-list { display: block; }
+    .code-file-picker { display: none; }
+  }
+}

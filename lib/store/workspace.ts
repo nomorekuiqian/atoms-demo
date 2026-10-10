@@ -52,6 +52,8 @@ type State = WorkspaceInit & {
   issuesDismissed: boolean;
   /** A past version shown read-only in Preview/Code (Versions tab). */
   viewing: { id: string; number: number; files: Files } | null;
+  versionLoading: string | null;
+  versionError: {id:string;message:string}|null;
 };
 
 type Actions = {
@@ -92,6 +94,8 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
   lastPrompt: null,
   issuesDismissed: false,
   viewing: null,
+  versionLoading: null,
+  versionError: null,
 
   init: (data) =>
     set({
@@ -106,6 +110,8 @@ export const useWorkspace = create<State & Actions>((set, get) => ({
       runError: null,
       viewing: null,
       observation: null,
+      versionLoading: null,
+      versionError: null,
     }),
 
   set: (patch) => set(patch),

@@ -28,6 +28,11 @@ export function Composer({
   className?: string;
   textareaRef?: React.Ref<HTMLTextAreaElement>;
 }) {
+  const input = React.useRef<HTMLTextAreaElement|null>(null);
+  React.useLayoutEffect(()=>{
+    const el=input.current;if(!el)return;
+    el.style.height="auto";el.style.height=`${Math.min(el.scrollHeight,192)}px`;
+  },[value,size]);
   const canSend = value.trim().length > 0 && !busy;
   return (
     <form
@@ -41,7 +46,7 @@ export function Composer({
       }}
     >
       <textarea
-        ref={textareaRef}
+        ref={el=>{input.current=el;if(typeof textareaRef==="function")textareaRef(el);else if(textareaRef)textareaRef.current=el;}}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
@@ -59,7 +64,7 @@ export function Composer({
         )}
       />
       <div className="flex items-center gap-2 px-3 pb-3 pt-1">
-        <div className="flex min-w-0 flex-1 items-center gap-2">{footer}</div>
+        <div className="flex min-w-0 flex-1 items-center gap-2">{footer ?? <span className="text-xs text-ink-2">Enter to send · Shift+Enter for a new line</span>}</div>
         {busy && !onStop ? (
           <span className="grid size-9 place-items-center rounded-full bg-surface-3 text-ink-2" role="status" aria-label="Working">
             <Loader2 className="size-[18px] animate-spin" aria-hidden />

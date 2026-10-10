@@ -4,6 +4,11 @@ import {readFile} from 'node:fs/promises';import assert from 'node:assert/strict
 const require=createRequire(import.meta.url),{chromium}=require(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
 const app=process.env.APP_URL ?? 'http://localhost:3300';
 const qa=JSON.parse(await readFile(process.env.QA_SESSION_FILE ?? '.insforge/qa-enhancements.json'));
+if(qa.email && qa.password) {
+ const authClient=createClient({baseUrl:process.env.NEXT_PUBLIC_INSFORGE_URL,anonKey:process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY});
+ const login=await authClient.auth.signInWithPassword({email:qa.email,password:qa.password});
+ if(login.error)throw new Error(login.error.message);qa.token=login.data.accessToken;
+}
 const client=createClient({baseUrl:process.env.NEXT_PUBLIC_INSFORGE_URL,anonKey:process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY,accessToken:qa.token});
 const db=client.database;const checked=r=>{if(r.error)throw new Error(r.error.message);return r.data;};
 const project=checked(await db.from('projects').insert([{title:'M9 checks acceptance'}]).select('id').single());
